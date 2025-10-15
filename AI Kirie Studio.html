@@ -76,11 +76,32 @@
                 <div id="loader" class="loader hidden"></div>
                 <img id="image-display" src="" class="hidden w-full h-full object-contain bg-gray-100" alt="Generated kirie art">
             </div>
+
+            <!-- Result Actions (e.g., Download) -->
+            <div id="result-actions" class="hidden mt-4 text-center">
+                <button id="download-button" class="bg-indigo-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105 active:scale-95">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        ダウンロード
+                    </span>
+                </button>
+            </div>
+
             <div id="error-message" class="mt-4 text-center text-red-600 font-medium h-5"></div>
+
+            <!-- History Section -->
+            <div id="history-section" class="mt-8 pt-6 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-700">生成履歴</h2>
+                    <button id="clear-history-button" class="text-sm text-gray-500 hover:text-red-600 transition-colors hidden">履歴を消去</button>
+                </div>
+                <div id="history-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4"></div>
+                <p id="history-placeholder" class="text-gray-500 text-center py-4">まだ履歴はありません。</p>
+            </div>
         </main>
     </div>
 
     <!-- Link to external JavaScript, deferred to improve loading performance -->
-    <script src="main.js" defer></script>
+    <script type="module" src="/main.js"></script>
 </body>
 </html>

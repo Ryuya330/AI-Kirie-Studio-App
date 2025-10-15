@@ -1,0 +1,11 @@
+# Netlifyの基本設定
+[build]
+  command = "npm run build" # ビルド時に実行するコマンド
+  publish = "dist"          # 公開するフォルダ
+  functions = "netlify/functions" # Netlify Functionsのソースフォルダ
+
+# APIリクエストをFunctionsに転送する設定
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200

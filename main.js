@@ -126,31 +126,38 @@ function getStyleKeywords(style) {
 
 // --- API Integration ---
 async function callImagenAPI(prompt) {
-    // TODO: This function should be moved to the backend.
-    // The frontend will call a new endpoint on our own server, e.g., POST /api/generate-text
-    const apiKey = ""; // DANGER: This key is exposed to the client.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
-    const payload = { instances: [{ prompt }], parameters: { sampleCount: 1 } };
-    const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    // Call our own backend server, not Google's directly.
+    const backendUrl = '/api/generate-text'; // Vite will proxy this
+    const payload = { prompt };
+
+    const response = await fetchWithRetry(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
     const result = await response.json();
     if (result.predictions?.[0]?.bytesBase64Encoded) return result.predictions[0].bytesBase64Encoded;
-    throw new Error("Imagen API did not return image data.");
+    throw new Error(result.message || "バックエンドサーバーから画像データが返されませんでした。");
 }
 
 async function callNanobananaAPI(prompt, base64ImageData, mimeType) {
-    // TODO: This function should be moved to the backend.
-    // The frontend will call a new endpoint on our own server, e.g., POST /api/generate-image
-    const apiKey = ""; // DANGER: This key is exposed to the client.
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+    // Call our own backend server
+    const backendUrl = '/api/generate-image'; // Vite will proxy this
     const payload = {
-        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: base64ImageData } }] }],
-        generationConfig: { responseModalities: ['IMAGE'] },
+        prompt,
+        base64ImageData,
+        mimeType
     };
-    const response = await fetchWithRetry(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const response = await fetchWithRetry(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
     const result = await response.json();
     const part = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
     if (part?.inlineData?.data) return part.inlineData.data;
-    throw new Error("Nanobanana (Gemini 2.5 Flash) API did not return image data.");
+    throw new Error(result.message || "バックエンドサーバーから画像データが返されませんでした。");
 }
 
 async function fetchWithRetry(url, options, retries = 3) {
@@ -161,7 +168,11 @@ async function fetchWithRetry(url, options, retries = 3) {
                 await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
                 continue;
             }
-            if (!response.ok) throw new Error(`API Error ${response.status}: ${await response.text()}`);
+                    if (!response.ok) {
+                        const errorBody = await response.text();
+                        console.error("API Error Body:", errorBody);
+                        throw new Error(`API Error ${response.status}`);
+                    }
             return response;
         } catch (error) {
             if (i === retries - 1) throw error;
