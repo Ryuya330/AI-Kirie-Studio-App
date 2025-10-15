@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Kirie Studio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts CDN -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-w-3xl w-full m-4">
+        <header class="text-center mb-6">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">AI Kirie Studio 🎨</h1>
+            <p class="text-gray-500 mt-2">あなたのアイデアや画像を、美しい切り絵風イラストに。</p>
+        </header>
+
+        <main>
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+                    <button id="tab-text" class="tab-active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200">テキストから作成</button>
+                    <button id="tab-image" class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200">画像から作成</button>
+                </nav>
+            </div>
+
+            <!-- Text-to-Image Mode -->
+            <div id="text-mode-content" class="transition-all">
+                <div class="space-y-4">
+                    <input type="text" id="prompt-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="イラストのテーマ (例：月夜の桜と、眠る黒猫)">
+                    <button id="generate-button" class="w-full bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-transform transform hover:scale-105 active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <span class="btn-content flex items-center justify-center"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Image-to-Image Mode -->
+            <div id="image-mode-content" class="hidden transition-all">
+                <div class="space-y-4">
+                    <label id="image-upload-label" for="image-upload" class="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div class="text-center">
+                            <svg class="w-8 h-8 mx-auto mb-2 text-gray-500" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+                            <p class="text-sm text-gray-500"><span class="font-semibold">クリック</span> or ドラッグ＆ドロップ</p>
+                            <p class="text-xs text-gray-500">PNG, JPG, WEBP (5MBまで)</p>
+                        </div>
+                        <input id="image-upload" type="file" class="hidden" accept="image/png, image/jpeg, image/webp" />
+                    </label>
+                    <div id="image-preview-container" class="hidden relative w-full h-40 rounded-lg overflow-hidden border">
+                        <img id="image-preview" src="" alt="Uploaded Image Preview" class="w-full h-full object-contain">
+                        <button id="remove-image-button" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1.5 hover:bg-opacity-75 focus:outline-none focus:ring-2 focus:ring-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                    <button id="convert-button" class="w-full bg-green-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                         <span class="btn-content flex items-center justify-center"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Common Style Configuration -->
+            <div class="mt-4">
+                <label for="style-dropdown" class="block text-sm font-medium text-gray-700 mb-1">作品のスタイル</label>
+                <select id="style-dropdown" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
+                    <option>シンプル</option> <option>カラフル</option> <option selected>ジオラマ風</option> <option>影絵風</option>
+                </select>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-container" class="mt-6 w-full h-[300px] sm:h-[500px] bg-gray-200 rounded-xl flex items-center justify-center border border-gray-300 overflow-hidden">
+                <div id="placeholder" class="text-gray-500 text-center px-4"><p>ここに生成された画像が表示されます</p></div>
+                <div id="loader" class="loader hidden"></div>
+                <img id="image-display" src="" class="hidden w-full h-full object-contain bg-gray-100" alt="Generated kirie art">
+            </div>
+            <div id="error-message" class="mt-4 text-center text-red-600 font-medium h-5"></div>
+        </main>
+    </div>
+
+    <!-- Link to external JavaScript, deferred to improve loading performance -->
+    <script src="main.js" defer></script>
+</body>
+</html>
