@@ -6,7 +6,6 @@ require('dotenv').config(); // .envファイルから環境変数を読み込む
 
 // 2. Expressアプリケーションの初期化
 const app = express();
-const PORT = process.env.PORT || 3000; // サーバーがリッスンするポート
 
 // 3. ミドルウェアの設定
 app.use(cors()); // CORSを有効にし、フロントエンドからのリクエストを許可
@@ -80,7 +79,4 @@ app.post('/api/generate-image', async (req, res) => {
     }
 });
 
-// 5. サーバーの起動
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+module.exports = app; // Expressアプリをエクスポート
