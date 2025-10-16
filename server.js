@@ -3,6 +3,11 @@ const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
 require('dotenv').config(); // .envファイルから環境変数を読み込む
+const { GoogleGenAI } = require('@google/genai');
+const fs = require('fs').promises;
+const path = require('path');
+const mime = require('mime');
+
 
 // 2. Expressアプリケーションの初期化
 const app = express();
@@ -10,6 +15,7 @@ const app = express();
 // 3. ミドルウェアの設定
 app.use(cors()); // CORSを有効にし、フロントエンドからのリクエストを許可
 app.use(express.json({ limit: '10mb' })); // リクエストボディのJSONをパースする（画像データのために上限を増やす）
+app.use(express.static('public')); // publicディレクトリ内の静的ファイルを提供
 
 const API_KEY = process.env.GOOGLE_API_KEY;
 
@@ -25,6 +31,49 @@ function handleError(res, error, context) {
 }
 
 // 4. APIエンドポイントの定義
+
+// Special Text-to-Image (Gemini 2.5 Flash) endpoint
+app.post('/api/generate-special', async (req, res) => {
+    try {
+        const ai = new GoogleGenAI(API_KEY);
+        const config = {
+            responseModalities: ['IMAGE', 'TEXT'],
+        };
+        const model = 'gemini-2.5-flash-image';
+        const contents = [{
+            role: 'user',
+            parts: [{
+                text: `Generate an image of a banana wearing a costume.`,
+            }, ],
+        }, ];
+
+        const response = await ai.models.generateContentStream({
+            model,
+            config,
+            contents,
+        });
+
+        let fileIndex = 0;
+        for await (const chunk of response) {
+            if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
+                const inlineData = chunk.candidates[0].content.parts[0].inlineData;
+                const fileExtension = mime.getExtension(inlineData.mimeType || '');
+                const buffer = Buffer.from(inlineData.data || '', 'base64');
+                
+                const fileName = `special-${Date.now()}-${fileIndex++}.${fileExtension}`;
+                const filePath = path.join('public', 'generated', fileName);
+                
+                await fs.writeFile(filePath, buffer);
+                
+                const imageUrl = `/generated/${fileName}`;
+                return res.json({ imageUrl });
+            }
+        }
+    } catch (error) {
+        handleError(res, error, 'Special Image Generation');
+    }
+});
+
 
 // Text-to-Image (Imagen) 用のエンドポイント
 app.post('/api/generate-text', async (req, res) => {

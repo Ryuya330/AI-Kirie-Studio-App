@@ -11,6 +11,7 @@ const ui = {
     styleDropdown: document.getElementById('style-dropdown'),
     generateButton: document.getElementById('generate-button'),
     convertButton: document.getElementById('convert-button'),
+    bananaButton: document.getElementById('banana-button'),
     imageUpload: document.getElementById('image-upload'),
     imageUploadLabel: document.getElementById('image-upload-label'),
     imagePreviewContainer: document.getElementById('image-preview-container'),
@@ -29,6 +30,7 @@ function initialize() {
     ui.tabImage.addEventListener('click', () => switchTab('image'));
     ui.generateButton.addEventListener('click', handleGenerateClick);
     ui.convertButton.addEventListener('click', handleConvertClick);
+    ui.bananaButton.addEventListener('click', handleBananaClick);
     ui.imageUpload.addEventListener('change', handleImageUpload);
     ui.removeImageButton.addEventListener('click', removeImage);
     setLoadingState(false); // Initialize button text
@@ -79,7 +81,7 @@ async function handleGenerateClick() {
     const finalPrompt = buildTextPrompt(userPrompt, ui.styleDropdown.value);
     try {
         const base64Data = await callImagenAPI(finalPrompt);
-        displayImage(base64Data);
+        displayImage(base64Data, true);
     } catch (error) {
         handleApiError(error, "Text-to-Image Generation");
     } finally {
@@ -97,9 +99,21 @@ async function handleConvertClick() {
     const finalPrompt = buildImagePrompt(ui.styleDropdown.value);
     try {
         const resultBase64 = await callNanobananaAPI(finalPrompt, base64ImageData, uploadedFile.type);
-        displayImage(resultBase64);
+        displayImage(resultBase64, true);
     } catch (error) {
         handleApiError(error, "Image-to-Image Conversion");
+    } finally {
+        setLoadingState(false);
+    }
+}
+
+async function handleBananaClick() {
+    setLoadingState(true);
+    try {
+        const { imageUrl } = await callBananaAPI();
+        displayImage(imageUrl, false);
+    } catch (error) {
+        handleApiError(error, "Special Generation");
     } finally {
         setLoadingState(false);
     }
@@ -160,6 +174,14 @@ async function callNanobananaAPI(prompt, base64ImageData, mimeType) {
     throw new Error(result.message || "バックエンドサーバーから画像データが返されませんでした。");
 }
 
+async function callBananaAPI() {
+    const backendUrl = '/api/generate-special';
+    const response = await fetchWithRetry(backendUrl, { method: 'POST' });
+    const result = await response.json();
+    if (result.imageUrl) return result;
+    throw new Error(result.message || "Special generation failed.");
+}
+
 async function fetchWithRetry(url, options, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -182,24 +204,27 @@ async function fetchWithRetry(url, options, retries = 3) {
 
 // --- UI State Management & Utilities ---
 function setLoadingState(isLoading) {
-    [ui.generateButton, ui.convertButton].forEach(btn => btn.disabled = isLoading);
+    [ui.generateButton, ui.convertButton, ui.bananaButton].forEach(btn => btn.disabled = isLoading);
     ui.errorMessage.textContent = '';
     const genBtnContent = ui.generateButton.querySelector('.btn-content');
     const convBtnContent = ui.convertButton.querySelector('.btn-content');
+    const bananaBtnContent = ui.bananaButton.querySelector('.btn-content');
     
     if (isLoading) {
         resetResultView();
         ui.loader.classList.remove('hidden');
         genBtnContent.textContent = '生成中...';
         convBtnContent.textContent = '変換中...';
+        bananaBtnContent.textContent = '生成中...';
     } else {
         genBtnContent.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L15.232 5.232z"></path></svg>テキストから生成！`;
         convBtnContent.innerHTML = `<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5M5 5l14 14M19 19v-5h-5"></path></svg>画像を切り絵化！`;
+        bananaBtnContent.innerHTML = `🍌 Special Generation`;
     }
 }
 
-function displayImage(base64Data) {
-    ui.imageDisplay.src = `data:image/png;base64,${base64Data}`;
+function displayImage(src, isBase64 = true) {
+    ui.imageDisplay.src = isBase64 ? `data:image/png;base64,${src}` : src;
     ui.imageDisplay.classList.remove('hidden');
     ui.placeholder.classList.add('hidden');
     ui.loader.classList.add('hidden');
