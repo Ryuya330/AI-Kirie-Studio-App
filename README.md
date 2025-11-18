@@ -1,99 +1,197 @@
-# AI Kirie Studio 🎨
+# 🎨 AI Kirie Studio
 
-テキストや画像から美しい切り絵風イラストを生成するWebアプリケーションです。
+AIを活用した切り絵アート生成Webアプリケーション。テキストプロンプトや画像から美しい切り絵スタイルのアート作品を生成できます。
 
-## 機能
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![PWA](https://img.shields.io/badge/PWA-Ready-green)
+![License](https://img.shields.io/badge/license-MIT-orange)
 
-- **テキストから生成**: テキストプロンプトから切り絵風イラストを生成 (FLUX.1 Schnell使用)
-- **画像から生成**: アップロードした画像を切り絵風に変換 (FLUX.1 Dev使用)
-- **スタイル選択**: シンプル、カラフル、ジオラマ風、影絵風の4つのスタイル
-- **スペシャル機能**: バナナのコスチューム画像を生成 (Stable Diffusion XL使用)
-- **履歴管理**: 生成した画像の履歴を保存・表示
-- **ダウンロード**: 生成した画像をダウンロード可能
+## ✨ 特徴
 
-## 使用AI技術
+- 🤖 **無料AI生成** - Pollinations AI & Hugging Face を使用
+- 🎨 **5つのスタイル** - Classic, Colorful, 3D, Minimal, Silhouette
+- 📸 **画像変換** - アップロードした画像を切り絵化
+- 🌐 **多言語対応** - 日本語/英語/中国語/韓国語
+- 📱 **PWA対応** - スマホにインストール可能
+- 💾 **履歴機能** - 最大50件の作品を保存
+- ⚡ **高速動作** - Vite + Express.js
 
-- **FLUX.1 Schnell**: 高速テキスト→画像生成（2-4秒）
-- **FLUX.1 Dev**: 高品質画像→画像変換
-- **Stable Diffusion XL**: 切り絵スタイル特化生成
+## 🚀 技術スタック
 
-これらのモデルはReplicate APIを通じて利用されます。
+### フロントエンド
+- **Vite** 5.4.20
+- **Tailwind CSS**
+- **Vanilla JavaScript** (ES Modules)
+- **PWA** (Service Worker + Manifest)
 
-## セットアップ
+### バックエンド
+- **Node.js** + **Express.js** 4.21.0
+- **Pollinations AI** (テキスト→画像)
+- **Hugging Face Inference API** (画像→画像)
 
-### 1. 依存関係のインストール
+### デプロイ
+- **Netlify** (推奨) - 無料ホスティング
+- **Netlify Functions** - サーバーレスAPI
 
-```powershell
+## 📦 インストール
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/Ryuya330/AI-Kirie-Studio-App.git
+cd AI-Kirie-Studio-App
+
+# 依存関係をインストール
 npm install
 ```
 
-### 2. 環境変数の設定
+## 🛠️ ローカル開発
 
-`.env.example` をコピーして `.env` ファイルを作成し、Replicate API トークンを設定してください。
-
-```powershell
-Copy-Item .env.example .env
-```
-
-`.env` ファイルを編集:
-```
-REPLICATE_API_TOKEN=あなたのAPIトークン
-```
-
-Replicate API トークンは以下で取得できます:
-1. [Replicate](https://replicate.com) にアクセス
-2. アカウントを作成（GitHubでサインイン可能）
-3. [API Tokens ページ](https://replicate.com/account/api-tokens) でトークンを生成
-
-### 3. 開発サーバーの起動
-
-**ターミナル1: バックエンドサーバー**
-```powershell
+```bash
+# バックエンドサーバー起動 (ターミナル1)
 npm run server
-```
+# → http://localhost:3000
 
-**ターミナル2: フロントエンドサーバー**
-```powershell
+# フロントエンド開発サーバー起動 (ターミナル2)
 npm run dev
+# → http://localhost:5173
 ```
 
-ブラウザで `http://localhost:5173` を開いてアプリケーションにアクセスできます。
+## 🌐 デプロイ (Netlify)
 
-## 本番環境へのデプロイ
+### 方法1: Netlify CLI (推奨)
 
-### Netlify へのデプロイ
+```bash
+# Netlify CLIをインストール
+npm install -g netlify-cli
 
-1. Netlify にログイン
-2. このリポジトリを接続
-3. 環境変数 `REPLICATE_API_TOKEN` を設定
-4. ビルド設定:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-   - Functions directory: `netlify/functions`
+# Netlifyにログイン
+netlify login
 
-## 技術スタック
+# デプロイ
+netlify deploy --prod
+```
 
-- **フロントエンド**: Vanilla JS, Tailwind CSS
-- **バックエンド**: Express.js, Node.js
-- **AI API**: Replicate (FLUX.1, Stable Diffusion XL)
-- **ビルドツール**: Vite
-- **デプロイ**: Netlify Functions
+### 方法2: GitHub連携
 
-## 料金について
+1. GitHubにプッシュ
+2. [Netlify](https://app.netlify.com) にログイン
+3. "New site from Git" をクリック
+4. リポジトリを選択
+5. ビルド設定:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist`
+   - **Functions directory**: `netlify/functions`
 
-Replicate APIは従量課金制です:
-- **FLUX.1 Schnell**: 約$0.003/画像（高速）
-- **FLUX.1 Dev**: 約$0.025/画像（高品質）
-- **Stable Diffusion XL**: 約$0.005/画像
+### デプロイ後の確認
 
-詳細は [Replicate Pricing](https://replicate.com/pricing) を確認してください。
+✅ PWAとして動作  
+✅ スマホのホーム画面に追加可能  
+✅ オフラインキャッシュ有効  
+✅ 多言語対応  
 
-## ライセンス
+## 📱 PWA機能
 
-MIT
+このアプリはPWA(Progressive Web App)として動作します:
 
-## 注意事項
+- **インストール可能** - ホーム画面に追加
+- **オフライン対応** - Service Workerでキャッシュ
+- **アプリライク** - スタンドアロンモード
+- **高速起動** - 事前キャッシュ
 
-- Replicate API の利用には API トークンが必要です
-- 生成された画像は `public/generated/` ディレクトリに保存されます
-- 初回利用時はモデルの起動に時間がかかる場合があります（コールドスタート）
+### スマホにインストール
+
+#### iPhone/iPad
+1. Safariでアクセス
+2. 共有ボタン → "ホーム画面に追加"
+
+#### Android
+1. Chromeでアクセス
+2. メニュー → "ホーム画面に追加"
+3. または自動でインストールプロンプト表示
+
+## 🎨 使い方
+
+### 1. テキストから生成
+1. プロンプトを入力 (例: "満月の夜の桜と黒猫")
+2. スタイルボタンでスタイル追加 (任意)
+3. "アートワークを生成" をクリック
+4. AI生成完了 → ダウンロード可能
+
+### 2. 画像から変換
+1. "画像をアップロード" をクリック
+2. 画像を選択 (PNG/JPG/WEBP)
+3. プレビュー確認
+4. "切り絵化する" をクリック
+5. AI変換完了 → ダウンロード可能
+
+### 3. 履歴から再利用
+- 履歴グリッドから過去の作品をクリック
+- 再表示 & ダウンロード可能
+
+## 🔧 環境変数
+
+現在、APIキーは不要です(無料AIを使用)。将来的にHugging Face APIキーを設定する場合:
+
+```bash
+# .env ファイル作成
+HUGGINGFACE_API_KEY=your_api_key_here
+```
+
+## 📂 プロジェクト構造
+
+```
+AI-Kirie-Studio-App/
+├── public/               # 静的ファイル
+│   ├── generated/       # AI生成画像保存先
+│   ├── manifest.json    # PWAマニフェスト
+│   ├── sw.js           # Service Worker
+│   ├── icon-192.png    # PWAアイコン
+│   └── icon-512.png    # PWAアイコン
+├── netlify/
+│   └── functions/      # Netlify Functions
+│       └── api.js      # サーバーレスAPI
+├── index.html          # メインHTML
+├── main.js             # フロントエンドJS
+├── style.css           # スタイル
+├── server.js           # Express.jsサーバー
+├── vite.config.js      # Vite設定
+├── netlify.toml        # Netlify設定
+└── package.json        # 依存関係
+```
+
+## 🐛 トラブルシューティング
+
+### ポートが使用中
+```bash
+# プロセスを停止
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess | Stop-Process -Force
+```
+
+### Service Workerが更新されない
+1. ブラウザの開発者ツールを開く
+2. Application → Service Workers → "Unregister"
+3. ページをリロード
+
+### 画像生成が遅い
+- Pollinations AIは無料のため、混雑時に遅延する場合があります
+- Hugging Face APIキーを設定すると高速化します
+
+## 📄 ライセンス
+
+MIT License - 自由に使用・改変・配布可能
+
+## 👨‍💻 開発者
+
+**Ryuya330**
+- GitHub: [@Ryuya330](https://github.com/Ryuya330)
+
+## 🙏 謝辞
+
+- [Pollinations AI](https://pollinations.ai/) - 無料AI画像生成
+- [Hugging Face](https://huggingface.co/) - AI/MLモデル
+- [Tailwind CSS](https://tailwindcss.com/) - UIフレームワーク
+- [Vite](https://vitejs.dev/) - ビルドツール
+
+---
+
+**Made with ❤️ and AI**
