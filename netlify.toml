@@ -4,6 +4,15 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# Functions設定
+[functions]
+  node_bundler = "esbuild"
+  
+[[functions.redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
 # PWA用ヘッダー設定
 [[headers]]
   for = "/manifest.json"
@@ -30,12 +39,14 @@
 # APIリクエストをFunctionsに転送
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
 # SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
 

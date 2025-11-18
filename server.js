@@ -15,9 +15,16 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
-const generatedDir = path.join(__dirname, 'public', 'generated');
-if (!fs.existsSync(generatedDir)) {
-    fs.mkdirSync(generatedDir, { recursive: true });
+// Netlify環境かローカル環境かを判定
+const isNetlify = process.env.NETLIFY === 'true';
+
+// ローカル環境のみファイルシステムを使用
+let generatedDir;
+if (!isNetlify) {
+    generatedDir = path.join(__dirname, 'public', 'generated');
+    if (!fs.existsSync(generatedDir)) {
+        fs.mkdirSync(generatedDir, { recursive: true });
+    }
 }
 
 // 複数のAIプロバイダー
@@ -52,9 +59,16 @@ async function downloadImage(url) {
 }
 
 async function saveImage(buffer, filename) {
-    const filepath = path.join(generatedDir, filename);
-    fs.writeFileSync(filepath, Buffer.from(buffer));
-    return `/generated/${filename}`;
+    if (isNetlify) {
+        // Netlify環境ではbase64で返す
+        const base64 = Buffer.from(buffer).toString('base64');
+        return `data:image/png;base64,${base64}`;
+    } else {
+        // ローカル環境ではファイルに保存
+        const filepath = path.join(generatedDir, filename);
+        fs.writeFileSync(filepath, Buffer.from(buffer));
+        return `/generated/${filename}`;
+    }
 }
 
 // テキストから切り絵生成
