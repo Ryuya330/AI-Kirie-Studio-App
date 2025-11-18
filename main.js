@@ -7,17 +7,20 @@ let lang = localStorage.getItem('lang') || 'ja';
 // ==================== 翻訳 ====================
 const i18n = {
     ja: {
-        title: 'AI切り絵スタジオ',
-        subtitle: 'AIで切り絵アートを生成',
+        title: 'AI切り絵スタジオ Premium',
+        subtitle: 'マルチAI統合 - 最高品質の切り絵アート生成',
         promptLabel: 'プロンプト',
-        promptPlaceholder: '例: 満月の夜の桜と黒猫',
+        promptPlaceholder: '例: 満月の夜と桜と黒猫',
         generate: '生成する',
         generating: '生成中...',
-        styleClassic: 'クラシック',
-        styleColorful: 'カラフル',
-        style3d: '3Dレイヤー',
-        styleMinimal: 'ミニマル',
-        styleSilhouette: 'シルエット',
+        styleTraditional: '伝統切り絵',
+        styleShadow: '影絵シアター',
+        styleDiorama: '立体ジオラマ',
+        styleModern: 'カラフルモダン',
+        styleZen: 'ミニマル禅',
+        styleFantasy: '幻想ファンタジー',
+        styleNouveau: 'アールヌーヴォー',
+        styleStreet: 'ストリートアート',
         uploadTab: '画像変換',
         uploadBtn: '画像を選択',
         convertBtn: '切り絵化する',
@@ -28,20 +31,24 @@ const i18n = {
         noHistory: '履歴なし',
         errorPrompt: 'プロンプトを入力してください',
         errorImage: '画像を選択してください',
-        errorGen: '生成に失敗しました'
+        errorGen: '生成に失敗しました',
+        aiInfo: 'AI: '
     },
     en: {
-        title: 'AI Kirie Studio',
-        subtitle: 'Create Paper-Cut Art with AI',
+        title: 'AI Kirie Studio Premium',
+        subtitle: 'Multi-AI Integration - Premium Paper-Cut Art Generation',
         promptLabel: 'Prompt',
         promptPlaceholder: 'e.g., Cherry blossoms and black cat under full moon',
         generate: 'Generate',
         generating: 'Generating...',
-        styleClassic: 'Classic',
-        styleColorful: 'Colorful',
-        style3d: '3D Layers',
-        styleMinimal: 'Minimal',
-        styleSilhouette: 'Silhouette',
+        styleTraditional: 'Traditional',
+        styleShadow: 'Shadow Theater',
+        styleDiorama: '3D Diorama',
+        styleModern: 'Colorful Modern',
+        styleZen: 'Minimal Zen',
+        styleFantasy: 'Fantasy',
+        styleNouveau: 'Art Nouveau',
+        styleStreet: 'Street Art',
         uploadTab: 'Convert Image',
         uploadBtn: 'Select Image',
         convertBtn: 'Convert',
@@ -52,7 +59,8 @@ const i18n = {
         noHistory: 'No history',
         errorPrompt: 'Please enter a prompt',
         errorImage: 'Please select an image',
-        errorGen: 'Generation failed'
+        errorGen: 'Generation failed',
+        aiInfo: 'AI: '
     }
 };
 
@@ -133,7 +141,7 @@ async function handleGenerate() {
         return;
     }
     
-    const selectedStyle = document.querySelector('.style-btn.active')?.dataset.style || 'classic';
+    const selectedStyle = document.querySelector('.style-btn.active')?.dataset.style || 'traditional';
     
     setLoading(true, el.generateBtn, i18n[lang].generating);
     hideResult();
@@ -148,8 +156,8 @@ async function handleGenerate() {
         const data = await response.json();
         
         if (data.success && data.imageUrl) {
-            showResult(data.imageUrl);
-            addToHistory(data.imageUrl, prompt, selectedStyle);
+            showResult(data.imageUrl, data.model, data.styleName);
+            addToHistory(data.imageUrl, prompt, selectedStyle, data.styleName);
         } else {
             throw new Error(data.error || i18n[lang].errorGen);
         }
@@ -183,7 +191,7 @@ async function handleConvert() {
         return;
     }
     
-    const selectedStyle = document.querySelector('.style-btn.active')?.dataset.style || 'classic';
+    const selectedStyle = document.querySelector('.style-btn.active')?.dataset.style || 'traditional';
     
     setLoading(true, el.convertBtn, i18n[lang].converting);
     hideResult();
@@ -198,8 +206,8 @@ async function handleConvert() {
         const data = await response.json();
         
         if (data.success && data.imageUrl) {
-            showResult(data.imageUrl);
-            addToHistory(data.imageUrl, i18n[lang].uploadTab, selectedStyle);
+            showResult(data.imageUrl, data.model, data.styleName);
+            addToHistory(data.imageUrl, i18n[lang].uploadTab, selectedStyle, data.styleName);
             
             // リセット
             el.uploadPreview.classList.add('hidden');
@@ -218,9 +226,10 @@ async function handleConvert() {
 }
 
 // ==================== 結果表示 ====================
-function showResult(imageUrl) {
+function showResult(imageUrl, model, styleName) {
     currentImageUrl = imageUrl;
     el.resultImg.src = imageUrl;
+    el.resultImg.alt = styleName ? `${styleName} (${model})` : 'Generated artwork';
     el.resultArea.classList.remove('hidden');
     el.resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -240,8 +249,14 @@ function handleDownload() {
 }
 
 // ==================== 履歴管理 ====================
-function addToHistory(imageUrl, prompt, style) {
-    history.unshift({ imageUrl, prompt, style, time: Date.now() });
+function addToHistory(imageUrl, prompt, style, styleName) {
+    history.unshift({ 
+        imageUrl, 
+        prompt, 
+        style,
+        styleName: styleName || style,
+        time: Date.now() 
+    });
     if (history.length > 50) history = history.slice(0, 50);
     localStorage.setItem('kirieHistory', JSON.stringify(history));
     renderHistory();
@@ -259,7 +274,7 @@ function renderHistory() {
         <div class="history-item" onclick="showHistoryItem(${i})">
             <img src="${item.imageUrl}" alt="${item.prompt}" loading="lazy">
             <div class="history-info">
-                <span class="history-style">${item.style}</span>
+                <span class="history-style">${item.styleName || item.style}</span>
             </div>
         </div>
     `).join('');
@@ -276,7 +291,7 @@ function clearHistory() {
 window.showHistoryItem = function(index) {
     const item = history[index];
     if (item) {
-        showResult(item.imageUrl);
+        showResult(item.imageUrl, 'History', item.styleName || item.style);
     }
 };
 

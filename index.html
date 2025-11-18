@@ -133,28 +133,30 @@
         /* スタイルボタン */
         .styles {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 10px;
             margin: 15px 0;
         }
 
         .style-btn {
-            padding: 10px;
+            padding: 12px 8px;
             border: 2px solid #e0e0e0;
             border-radius: 10px;
             background: white;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             text-align: center;
+            line-height: 1.3;
         }
 
         .style-btn.active {
             border-color: #667eea;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         /* ボタン */
@@ -385,8 +387,8 @@
 
     <div class="container">
         <header>
-            <h1 data-i18n="title">🎨 AI切り絵スタジオ</h1>
-            <p class="subtitle" data-i18n="subtitle">AIで切り絵アートを生成</p>
+            <h1 data-i18n="title">🎨 AI切り絵スタジオ Premium</h1>
+            <p class="subtitle" data-i18n="subtitle">マルチAI統合 - 最高品質の切り絵アート生成</p>
         </header>
 
         <!-- メインカード -->
@@ -399,14 +401,17 @@
             <!-- タブ1: テキスト生成 -->
             <div class="tab-content active" id="tab-0">
                 <label data-i18n="promptLabel">プロンプト</label>
-                <textarea id="prompt" rows="3" data-i18n="promptPlaceholder" placeholder="例: 満月の夜の桜と黒猫"></textarea>
+                <textarea id="prompt" rows="3" data-i18n="promptPlaceholder" placeholder="例: 満月の夜と桜と黒猫"></textarea>
                 
                 <div class="styles">
-                    <button class="style-btn active" data-style="classic" data-i18n="styleClassic">クラシック</button>
-                    <button class="style-btn" data-style="colorful" data-i18n="styleColorful">カラフル</button>
-                    <button class="style-btn" data-style="3d" data-i18n="style3d">3D</button>
-                    <button class="style-btn" data-style="minimal" data-i18n="styleMinimal">ミニマル</button>
-                    <button class="style-btn" data-style="silhouette" data-i18n="styleSilhouette">シルエット</button>
+                    <button class="style-btn active" data-style="traditional" data-i18n="styleTraditional">伝統切り絵</button>
+                    <button class="style-btn" data-style="shadow" data-i18n="styleShadow">影絵シアター</button>
+                    <button class="style-btn" data-style="diorama" data-i18n="styleDiorama">立体ジオラマ</button>
+                    <button class="style-btn" data-style="modern" data-i18n="styleModern">カラフルモダン</button>
+                    <button class="style-btn" data-style="zen" data-i18n="styleZen">ミニマル禅</button>
+                    <button class="style-btn" data-style="fantasy" data-i18n="styleFantasy">幻想ファンタジー</button>
+                    <button class="style-btn" data-style="nouveau" data-i18n="styleNouveau">アールヌーヴォー</button>
+                    <button class="style-btn" data-style="street" data-i18n="styleStreet">ストリートアート</button>
                 </div>
                 
                 <button class="btn" id="generate-btn" data-i18n="generate">生成する</button>
