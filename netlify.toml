@@ -6,7 +6,7 @@
 
 # Functions設定
 [functions]
-  node_bundler = "esbuild_zisi"
+  node_bundler = "none"
 
 # PWA用ヘッダー設定
 [[headers]]
