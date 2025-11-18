@@ -9,13 +9,13 @@ const AI_PROVIDERS = {
     flux: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`
 };
 
-// Style Enhancers
+// Style Enhancers - 切り絵スタイルの強化プロンプト
 const STYLE_ENHANCERS = {
-    classic: (prompt) => `${prompt}, traditional paper cut art, kirigami style, layered paper craft, intricate details, sharp edges, clean cuts, elegant design, high contrast shadows, professional paper cutting, masterpiece quality, 8k resolution`,
-    colorful: (prompt) => `${prompt}, vibrant multi-colored paper cut art, rainbow gradient layers, cheerful and bright colors, playful paper craft, pop art style, bold color blocks, modern paper cutting, joyful aesthetic, highly detailed, 8k resolution`,
-    '3d': (prompt) => `${prompt}, 3D layered paper cut diorama, shadow box effect, multiple depth layers, volumetric paper craft, dimensional paper art, foreground middle ground background, dramatic lighting, depth of field, cinematic composition, ultra realistic, 8k resolution`,
-    minimal: (prompt) => `${prompt}, minimalist paper cut silhouette, simple clean design, monochromatic, single layer cutting, elegant negative space, zen aesthetic, modern minimalism, geometric shapes, flat design, 2-3 colors maximum, sharp precision, 8k resolution`,
-    silhouette: (prompt) => `${prompt}, dramatic paper cut silhouette art, black paper on white background, shadow puppet style, bold contrast, elegant curves, theatrical lighting effect, narrative storytelling, single continuous cut, artistic shadow play, museum quality, 8k resolution`
+    classic: (prompt) => `Japanese paper cut art (kirigami): ${prompt}. Traditional layered paper craft style, intricate cut details, sharp precise edges, elegant silhouette design, high contrast black and white shadows, delicate patterns, professional paper cutting technique, fine craftsmanship, masterpiece quality, 8k resolution`,
+    colorful: (prompt) => `Colorful paper cut art: ${prompt}. Vibrant multi-layered paper craft, rainbow gradient colors, cheerful bright palette, playful overlapping layers, pop art aesthetic, bold color blocks, modern paper cutting style, joyful composition, highly detailed patterns, 8k resolution`,
+    '3d': (prompt) => `3D layered paper art diorama: ${prompt}. Multiple depth layers creating shadow box effect, volumetric paper craft, dimensional paper sculpture, distinct foreground middle ground background layers, dramatic side lighting, deep shadows, cinematic depth of field, ultra realistic paper texture, 8k resolution`,
+    minimal: (prompt) => `Minimalist paper cut silhouette: ${prompt}. Simple clean line design, monochromatic black on white, single layer cutting, elegant negative space, zen aesthetic, modern minimalism, geometric simplified shapes, flat graphic design, 2-3 colors maximum, razor sharp precision, 8k resolution`,
+    silhouette: (prompt) => `Dramatic paper cut silhouette: ${prompt}. Black paper on white background, shadow puppet theater style, bold high contrast, elegant flowing curves, theatrical lighting effect, storytelling composition, single continuous cut technique, artistic shadow play, museum quality craftsmanship, 8k resolution`
 };
 
 async function downloadImage(url) {
@@ -96,7 +96,7 @@ exports.handler = async function(event, context) {
 
         // Convert image
         if (path === '/convert' && event.httpMethod === 'POST') {
-            const { imageData } = JSON.parse(event.body || '{}');
+            const { imageData, style = 'classic' } = JSON.parse(event.body || '{}');
 
             if (!imageData) {
                 return {
@@ -108,8 +108,13 @@ exports.handler = async function(event, context) {
 
             console.log('[Convert] Converting image to paper-cut style...');
 
-            const prompt = 'paper cut art transformation, kirigami style, layered paper craft, vibrant colors, intricate details, sharp edges, high contrast, artistic paper cutting, masterpiece quality';
-            const imageUrl = AI_PROVIDERS.flux(prompt);
+            // 画像変換用の汎用プロンプト（元画像の内容に基づく切り絵化）
+            const basePrompt = 'Transform this image into paper cut art style';
+            const enhancedPrompt = STYLE_ENHANCERS[style] 
+                ? STYLE_ENHANCERS[style](basePrompt) 
+                : STYLE_ENHANCERS.classic(basePrompt);
+            
+            const imageUrl = AI_PROVIDERS.flux(enhancedPrompt);
 
             const imageBuffer = await downloadImage(imageUrl);
             const base64 = Buffer.from(imageBuffer).toString('base64');
@@ -123,7 +128,9 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     success: true,
                     imageUrl: dataUrl,
-                    model: 'FLUX.1'
+                    style: style,
+                    model: 'FLUX.1',
+                    note: 'Image conversion generates a new paper-cut style image based on generic prompts'
                 })
             };
         }

@@ -183,6 +183,8 @@ async function handleConvert() {
         return;
     }
     
+    const selectedStyle = document.querySelector('.style-btn.active')?.dataset.style || 'classic';
+    
     setLoading(true, el.convertBtn, i18n[lang].converting);
     hideResult();
     
@@ -190,14 +192,14 @@ async function handleConvert() {
         const response = await fetch('/api/convert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageData: uploadedImage })
+            body: JSON.stringify({ imageData: uploadedImage, style: selectedStyle })
         });
         
         const data = await response.json();
         
         if (data.success && data.imageUrl) {
             showResult(data.imageUrl);
-            addToHistory(data.imageUrl, i18n[lang].uploadTab, 'convert');
+            addToHistory(data.imageUrl, i18n[lang].uploadTab, selectedStyle);
             
             // リセット
             el.uploadPreview.classList.add('hidden');
