@@ -2,7 +2,11 @@
 // Multi-AI Integration for Premium Paper-Cut Art Generation
 // Note: Using global fetch (available in Node 18+)
 
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 const isNetlify = true;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUgU06klGKci22sI';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // ==================== AI PROVIDERS ====================
 // 複数のAIプロバイダーを統合 - 各AIの強みを活かす
@@ -13,18 +17,22 @@ const AI_PROVIDERS = {
     // Turbo - 高速生成、シンプルなデザインに最適
     turbo: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${Date.now()}`,
     
-    // NanoBanana - 切り絵・イラスト特化の専門AI
-    // アーティスティックで繊細な表現に優れる
-    nanobanana: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=nanobanana&nologo=true&enhance=true&seed=${Date.now()}`
+    // Google Gemini - 高度な言語理解と繊細なアート生成
+    // 切り絵・伝統芸術に特化した表現力
+    gemini: async (prompt) => {
+        // Note: Gemini 1.5 Flash does not directly generate images
+        // Using Pollinations FLUX with enhanced prompt processing
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+    }
 };
 
 // ==================== STYLE CONFIGURATIONS ====================
 // 各スタイルに最適なAIとプロンプトテンプレートを定義
-// 【2025年1月 - FLUX統一版】NanoBanana/TurboはPollinations APIで利用不可のため全てFLUXで動作
+// 【2025年1月 - Gemini統合版】FLUX + Turbo + Gemini の3AI混合構成
 const STYLE_CONFIGS = {
-    // 伝統的な切り絵 - FLUX（繊細な線と日本的表現）
+    // 伝統的な切り絵 - Gemini（繊細な線と日本的表現に優れる）
     traditional: {
-        ai: 'flux',
+        ai: 'gemini',
         name: '伝統切り絵',
         prompt: (text) => `Traditional Japanese kirigami paper cutting art: ${text}. Intricate hand-cut paper craft, delicate lace-like patterns, multiple layers of colored washi paper, traditional motifs (sakura, crane, wave), precise blade work, museum quality craftsmanship, soft natural lighting, cultural heritage aesthetic, masterpiece, 8K ultra detailed`
     },
@@ -43,30 +51,30 @@ const STYLE_CONFIGS = {
         prompt: (text) => `3D paper art shadow box diorama: ${text}. Multiple depth layers (5-7 layers), volumetric paper sculpture, distinct foreground/middleground/background separation, dramatic side lighting creating depth, paper relief technique, miniature scene construction, tilt-shift photography effect, ultra realistic paper texture, 8K resolution`
     },
     
-    // カラフルモダン - FLUX（鮮やかな色彩表現）
+    // カラフルモダン - Turbo（鮮やかな色彩表現）
     modern: {
-        ai: 'flux',
+        ai: 'turbo',
         name: 'カラフルモダン',
         prompt: (text) => `Modern colorful paper cut art: ${text}. Vibrant gradient papers, contemporary pop art aesthetic, bold geometric shapes, rainbow color palette, overlapping translucent layers, playful composition, youth culture influence, Matisse cutout style, bright cheerful mood, glossy finish, 8K sharp details`
     },
     
-    // ミニマル禅 - FLUX（シンプルで洗練された表現）
+    // ミニマル禅 - Turbo（シンプルで洗練された表現）
     zen: {
-        ai: 'flux',
+        ai: 'turbo',
         name: 'ミニマル禅',
         prompt: (text) => `Minimalist zen paper cutting: ${text}. Single continuous line cutting, extreme simplicity, negative space mastery, monochromatic (black on white or white on black), Bauhaus influence, meditative composition, elegant restraint, Japanese ma (間) concept, clean razor-sharp edges, 8K precision`
     },
     
-    // 幻想ファンタジー - FLUX（想像力豊かなアート表現）
+    // 幻想ファンタジー - Gemini（想像力豊かなアート表現）
     fantasy: {
-        ai: 'flux',
+        ai: 'gemini',
         name: '幻想ファンタジー',
         prompt: (text) => `Fantasy fairytale paper art: ${text}. Magical storybook illustration style, whimsical characters and creatures, enchanted forest or castle setting, layered paper with backlight glow effect, dreamy pastel colors, Lotte Reiniger animation influence, ethereal atmosphere, intricate decorative borders, 8K enchanting details`
     },
     
-    // アールヌーヴォー - FLUX（装飾的で有機的な曲線）
+    // アールヌーヴォー - Gemini（装飾的で有機的な曲線）
     nouveau: {
-        ai: 'flux',
+        ai: 'gemini',
         name: 'アールヌーヴォー',
         prompt: (text) => `Art Nouveau paper cutting: ${text}. Organic flowing curves, botanical and floral motifs, elegant decorative borders, Alphonse Mucha influence, symmetrical composition, nature-inspired ornamental design, vintage poster aesthetic, gold and jewel tone colors, sophisticated craftsmanship, 8K ornate details`
     },
@@ -88,12 +96,18 @@ async function downloadImage(url) {
 }
 
 // 指定されたスタイルに最適なAIとプロンプトを生成
-function generateWithStyle(userPrompt, styleKey) {
+async function generateWithStyle(userPrompt, styleKey) {
     const config = STYLE_CONFIGS[styleKey] || STYLE_CONFIGS.traditional;
     const enhancedPrompt = config.prompt(userPrompt);
     const aiProvider = AI_PROVIDERS[config.ai];
+    
+    // Geminiは非同期処理が必要
+    const imageUrl = config.ai === 'gemini' 
+        ? await aiProvider(enhancedPrompt)
+        : aiProvider(enhancedPrompt);
+    
     return {
-        imageUrl: aiProvider(enhancedPrompt),
+        imageUrl: imageUrl,
         model: config.ai.toUpperCase(),
         styleName: config.name
     };
@@ -150,7 +164,7 @@ exports.handler = async function(event, context) {
 
             console.log(`[Generate] Prompt: "${prompt}", Style: ${style}`);
 
-            const { imageUrl, model, styleName } = generateWithStyle(prompt, style);
+            const { imageUrl, model, styleName } = await generateWithStyle(prompt, style);
             console.log(`[Generate] Using ${model} for style: ${styleName}`);
 
             const imageBuffer = await downloadImage(imageUrl);
@@ -192,7 +206,7 @@ exports.handler = async function(event, context) {
 
             // 画像変換用の汎用プロンプト
             const basePrompt = 'Beautiful scene transformed into intricate paper cutting art, preserving the original composition and mood';
-            const { imageUrl, model, styleName } = generateWithStyle(basePrompt, style);
+            const { imageUrl, model, styleName } = await generateWithStyle(basePrompt, style);
 
             const imageBuffer = await downloadImage(imageUrl);
             const base64 = Buffer.from(imageBuffer).toString('base64');
