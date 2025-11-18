@@ -18,11 +18,50 @@ const AI_PROVIDERS = {
     turbo: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${Date.now()}`,
     
     // Google Gemini - 高度な言語理解と繊細なアート生成
-    // 切り絵・伝統芸術に特化した表現力
+    // Gemini 2.5 Flash Image - 画像生成特化モデル
     gemini: async (prompt) => {
-        // Note: Gemini 1.5 Flash does not directly generate images
-        // Using Pollinations FLUX with enhanced prompt processing
-        return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+        try {
+            const model = genAI.getGenerativeModel({ 
+                model: 'gemini-2.5-flash-image'
+            });
+            
+            const result = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: {
+                    temperature: 0.9,
+                    topK: 40,
+                    topP: 0.95,
+                }
+            });
+            
+            const response = await result.response;
+            
+            // Gemini画像生成レスポンスから画像URLを取得
+            // 注: 実際のレスポンス形式に応じて調整が必要
+            if (response.candidates && response.candidates[0]) {
+                const candidate = response.candidates[0];
+                if (candidate.content && candidate.content.parts) {
+                    for (const part of candidate.content.parts) {
+                        if (part.inlineData) {
+                            // Base64画像データをdata URLとして返す
+                            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                        }
+                    }
+                }
+            }
+            
+            // Geminiが画像を生成できない場合はFLUXにフォールバック
+            console.log('[Gemini] No image generated, falling back to FLUX');
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+            
+        } catch (error) {
+            console.error('[Gemini Error]:', error.message);
+            // エラー時はFLUXにフォールバック
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+        }
     }
 };
 
@@ -90,6 +129,12 @@ const STYLE_CONFIGS = {
 
 // ==================== HELPER FUNCTIONS ====================
 async function downloadImage(url) {
+    // data URL形式の場合はそのまま返す（Gemini画像の場合）
+    if (url.startsWith('data:')) {
+        return url;
+    }
+    
+    // 通常のURL画像をダウンロード
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Download failed: ${response.statusText}`);
     return await response.arrayBuffer();
@@ -167,9 +212,15 @@ exports.handler = async function(event, context) {
             const { imageUrl, model, styleName } = await generateWithStyle(prompt, style);
             console.log(`[Generate] Using ${model} for style: ${styleName}`);
 
-            const imageBuffer = await downloadImage(imageUrl);
-            const base64 = Buffer.from(imageBuffer).toString('base64');
-            const dataUrl = `data:image/png;base64,${base64}`;
+            // Gemini画像の場合はdata URL形式でそのまま返す
+            let dataUrl;
+            if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+                dataUrl = imageUrl;
+            } else {
+                const imageBuffer = await downloadImage(imageUrl);
+                const base64 = Buffer.from(imageBuffer).toString('base64');
+                dataUrl = `data:image/png;base64,${base64}`;
+            }
 
             console.log(`[Generate] Success with ${model}`);
 
@@ -208,9 +259,15 @@ exports.handler = async function(event, context) {
             const basePrompt = 'Beautiful scene transformed into intricate paper cutting art, preserving the original composition and mood';
             const { imageUrl, model, styleName } = await generateWithStyle(basePrompt, style);
 
-            const imageBuffer = await downloadImage(imageUrl);
-            const base64 = Buffer.from(imageBuffer).toString('base64');
-            const dataUrl = `data:image/png;base64,${base64}`;
+            // Gemini画像の場合はdata URL形式でそのまま返す
+            let dataUrl;
+            if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+                dataUrl = imageUrl;
+            } else {
+                const imageBuffer = await downloadImage(imageUrl);
+                const base64 = Buffer.from(imageBuffer).toString('base64');
+                dataUrl = `data:image/png;base64,${base64}`;
+            }
 
             console.log(`[Convert] Success with ${model}`);
 
