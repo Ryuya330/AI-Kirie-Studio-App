@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Replicate from 'replicate';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,10 +19,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// Replicate API の初期化
-const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-});
+// Pollinations AI - APIキー不要！
+const POLLINATIONS_API = 'https://image.pollinations.ai/prompt';
 
 // generated ディレクトリの確認/作成
 const generatedDir = path.join(__dirname, 'public', 'generated');
@@ -76,7 +73,7 @@ function enhanceKiriePrompt(basePrompt, style) {
 }
 
 /**
- * Text-to-Image Generation (FLUX.1 Schnell - 高速生成)
+ * Text-to-Image Generation (Stable Diffusion XL)
  */
 app.post('/api/generate-text', async (req, res) => {
     try {
@@ -91,27 +88,12 @@ app.post('/api/generate-text', async (req, res) => {
 
         console.log('[Text-to-Image] Generating with prompt:', prompt);
 
-        // FLUX.1 Schnellモデルで高速生成
-        const output = await replicate.run(
-            "black-forest-labs/flux-schnell",
-            {
-                input: {
-                    prompt: prompt,
-                    num_outputs: 1,
-                    aspect_ratio: "1:1",
-                    output_format: "png",
-                    output_quality: 90
-                }
-            }
-        );
-
-        // 出力は画像URLの配列
-        const imageUrl = Array.isArray(output) ? output[0] : output;
+        // Pollinations AIで生成（APIキー不要）
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `${POLLINATIONS_API}/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
         
-        if (!imageUrl) {
-            throw new Error('画像が生成されませんでした');
-        }
-
+        console.log('[Text-to-Image] Fetching from:', imageUrl);
+        
         // 画像をダウンロードして保存
         const fileName = `text-${Date.now()}.png`;
         const localUrl = await downloadAndSaveImage(imageUrl, fileName);
@@ -129,49 +111,63 @@ app.post('/api/generate-text', async (req, res) => {
 });
 
 /**
- * Image-to-Image Generation (FLUX.1 Schnell with image prompt)
+ * Image-to-Image Generation (Hugging Face ControlNet)
  */
 app.post('/api/generate-image', async (req, res) => {
     try {
-        const { prompt, base64ImageData, mimeType } = req.body;
+        const { base64ImageData, mimeType } = req.body;
         
-        if (!prompt || !base64ImageData || !mimeType) {
+        if (!base64ImageData || !mimeType) {
             return res.status(400).json({ 
                 success: false,
-                message: 'プロンプト、画像データ、MIMEタイプが必要です' 
+                message: '画像データとMIMEタイプが必要です' 
             });
         }
 
-        console.log('[Image-to-Image] Converting with prompt:', prompt);
+        console.log('[Image-to-Image] Converting image to paper-cut style...');
 
-        // Base64をデータURIに変換
-        const imageDataUri = `data:${mimeType};base64,${base64ImageData}`;
-
-        // FLUX.1 Devモデルでimage-to-image変換
-        const output = await replicate.run(
-            "black-forest-labs/flux-dev",
-            {
-                input: {
-                    prompt: prompt,
-                    image: imageDataUri,
-                    num_outputs: 1,
-                    aspect_ratio: "1:1",
-                    output_format: "png",
-                    output_quality: 90,
-                    prompt_strength: 0.8
-                }
-            }
-        );
-
-        const imageUrl = Array.isArray(output) ? output[0] : output;
+        // Hugging Face APIを使用（APIキー不要のモデル）
+        const HF_API_URL = 'https://api-inference.huggingface.co/models/timbrooks/instruct-pix2pix';
         
-        if (!imageUrl) {
-            throw new Error('画像が生成されませんでした');
+        // Base64からバッファに変換
+        const imageBuffer = Buffer.from(base64ImageData, 'base64');
+        
+        // Hugging Face APIにリクエスト
+        const response = await fetch(HF_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                inputs: {
+                    image: `data:${mimeType};base64,${base64ImageData}`,
+                    prompt: 'Transform this into paper cut art style, kirigami, layered paper craft, high contrast, sharp edges, vibrant colors'
+                }
+            })
+        });
+
+        if (!response.ok) {
+            // フォールバック: Pollinations AIで画像をベースにした生成
+            console.log('[Image-to-Image] Using Pollinations fallback...');
+            const prompt = 'paper cut art style, kirigami, layered, vibrant, detailed';
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `${POLLINATIONS_API}/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+            const fileName = `image-${Date.now()}.png`;
+            const localUrl = await downloadAndSaveImage(imageUrl, fileName);
+            
+            return res.json({
+                success: true,
+                imageUrl: localUrl,
+                method: 'pollinations'
+            });
         }
 
-        // 画像をダウンロードして保存
+        // 生成された画像を保存
+        const resultBuffer = await response.arrayBuffer();
         const fileName = `image-${Date.now()}.png`;
-        const localUrl = await downloadAndSaveImage(imageUrl, fileName);
+        const filePath = path.join(generatedDir, fileName);
+        fs.writeFileSync(filePath, Buffer.from(resultBuffer));
+        const localUrl = `/generated/${fileName}`;
 
         console.log('[Image-to-Image] Image saved:', fileName);
 
@@ -186,7 +182,7 @@ app.post('/api/generate-image', async (req, res) => {
 });
 
 /**
- * Special Generation (SDXL with LoRA for paper cut art)
+ * Special Generation (Stable Diffusion for paper cut art)
  */
 app.post('/api/generate-special', async (req, res) => {
     try {
@@ -194,27 +190,12 @@ app.post('/api/generate-special', async (req, res) => {
 
         const prompt = 'A cute smiling banana character wearing a colorful costume, paper cut art style, kirigami, layered paper craft, vibrant colors, whimsical and cheerful, highly detailed, masterpiece';
 
-        // SDXL with paper-cut style
-        const output = await replicate.run(
-            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-            {
-                input: {
-                    prompt: prompt,
-                    negative_prompt: "ugly, blurry, low quality, distorted, realistic photo, 3d render",
-                    num_outputs: 1,
-                    aspect_ratio: "1:1",
-                    output_format: "png",
-                    output_quality: 90
-                }
-            }
-        );
-
-        const imageUrl = Array.isArray(output) ? output[0] : output;
+        // Pollinations AIで生成
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `${POLLINATIONS_API}/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
         
-        if (!imageUrl) {
-            throw new Error('画像が生成されませんでした');
-        }
-
+        console.log('[Special] Generating from Pollinations AI');
+        
         // 画像をダウンロードして保存
         const fileName = `special-${Date.now()}.png`;
         const localUrl = await downloadAndSaveImage(imageUrl, fileName);

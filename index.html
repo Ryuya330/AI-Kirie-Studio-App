@@ -3,204 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Kirie Studio - Paper Cut Art Generator</title>
-    <meta name="description" content="Create beautiful paper-cut art with AI. Transform text and images into stunning kirigami masterpieces.">
-    <!-- Tailwind CSS CDN -->
+    <title>KIRIE AI - Paper Cut Art Studio</title>
+    <meta name="description" content="Transform ideas into stunning paper-cut art with AI. Powered by Pollinations.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
+                        body: ['Inter', 'system-ui', 'sans-serif'],
+                        jp: ['Noto Sans JP', 'sans-serif']
+                    },
                     colors: {
-                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
-                        accent: { 50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc', 400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf', 800: '#86198f', 900: '#701a75' }
+                        primary: '#FF6B6B',
+                        secondary: '#4ECDC4',
+                        accent: '#FFE66D',
+                        dark: '#0A0E27',
+                        darker: '#060818'
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.5s ease-in',
-                        'slide-up': 'slideUp 0.5s ease-out',
-                        'bounce-slow': 'bounce 3s infinite',
-                        'glow': 'glow 2s ease-in-out infinite alternate'
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                        'fade-in': 'fadeIn 0.8s ease-out'
                     },
                     keyframes: {
-                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-                        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
-                        glow: { '0%': { boxShadow: '0 0 5px rgba(14, 165, 233, 0.5)' }, '100%': { boxShadow: '0 0 20px rgba(14, 165, 233, 0.8)' } }
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' }
+                        },
+                        glow: {
+                            '0%, 100%': { boxShadow: '0 0 20px rgba(255, 107, 107, 0.4)' },
+                            '50%': { boxShadow: '0 0 40px rgba(78, 205, 196, 0.6)' }
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(30px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        }
                     }
                 }
             }
         }
     </script>
-    <!-- Google Fonts CDN -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
-    <!-- Link to external stylesheet -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 min-h-screen transition-colors duration-500">
-    <!-- Top Navigation Bar -->
-    <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-3">
-                    <div class="text-3xl">🎨</div>
-                    <h1 class="text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">Kirie Studio</h1>
-                </div>
+<body class="bg-darker text-white font-body overflow-x-hidden">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-dark/60 border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
                 <div class="flex items-center space-x-4">
-                    <!-- Language Selector -->
-                    <select id="language-selector" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border-none text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        <option value="ja">🇯🇵 日本語</option>
-                        <option value="en">🇬🇧 English</option>
-                        <option value="zh">🇨🇳 中文</option>
-                        <option value="ko">🇰🇷 한국어</option>
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-2xl shadow-lg shadow-primary/20 animate-float">✂️</div>
+                    <h1 class="text-2xl font-display font-bold tracking-tight">
+                        <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">KIRIE AI</span>
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="language-selector" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-medium backdrop-blur-sm hover:bg-white/10 transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer">
+                        <option value="ja">🇯🇵</option>
+                        <option value="en">🇬🇧</option>
+                        <option value="zh">🇨🇳</option>
+                        <option value="ko">🇰🇷</option>
                     </select>
-                    <!-- Dark Mode Toggle -->
-                    <button id="theme-toggle" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Toggle theme">
-                        <svg id="theme-icon-sun" class="w-5 h-5 text-yellow-500 hidden dark:block" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"/></svg>
-                        <svg id="theme-icon-moon" class="w-5 h-5 text-gray-700 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                    <button id="theme-toggle" class="p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all focus:outline-none hidden" aria-label="Toggle theme">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
                     </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="flex items-center justify-center min-h-screen pt-20 pb-8 px-4">
-    <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-2xl p-6 sm:p-8 max-w-4xl w-full border border-gray-200 dark:border-gray-700 animate-fade-in">
-        <header class="text-center mb-8">
-            <div class="inline-block">
-                <h2 class="text-4xl sm:text-5xl font-black bg-gradient-to-r from-primary-600 via-accent-500 to-pink-600 bg-clip-text text-transparent mb-3 animate-slide-up" data-i18n="title">AI Kirie Studio</h2>
-                <div class="h-1 w-32 mx-auto bg-gradient-to-r from-primary-500 to-accent-500 rounded-full"></div>
-            </div>
-            <p class="text-gray-600 dark:text-gray-300 mt-4 text-lg" data-i18n="subtitle">Transform your ideas and images into beautiful paper-cut art</p>
-            <div class="mt-6 flex justify-center gap-4 flex-wrap">
-                <button id="banana-button" class="group relative bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold px-8 py-4 rounded-xl hover:from-yellow-500 hover:to-orange-600 focus:outline-none focus:ring-4 focus:ring-yellow-300 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl">
-                    <span class="btn-content flex items-center justify-center">
-                        <span class="text-2xl mr-2 group-hover:animate-bounce">🍌</span>
-                        <span data-i18n="specialGeneration">Special Generation</span>
-                    </span>
-                </button>
-            </div>
-        </header>
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center px-6 pt-32 pb-20">
+        <!-- Animated Background -->
+        <div class="absolute inset-0 overflow-hidden">
+            <div class="absolute -top-1/2 -left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-float"></div>
+            <div class="absolute top-1/3 -right-1/4 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-float" style="animation-delay: 2s;"></div>
+            <div class="absolute -bottom-1/4 left-1/3 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-float" style="animation-delay: 4s;"></div>
+        </div>
 
-        <main>
-            <!-- Tab Navigation -->
-            <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-                <nav class="flex -mb-px space-x-8" aria-label="Tabs">
-                    <button id="tab-text" class="tab-active group whitespace-nowrap py-4 px-2 border-b-2 font-semibold text-base transition-all duration-300 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        <span data-i18n="textToImage">Text to Image</span>
-                    </button>
-                    <button id="tab-image" class="group border-transparent text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-300 dark:hover:border-primary-700 whitespace-nowrap py-4 px-2 border-b-2 font-semibold text-base transition-all duration-300 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <span data-i18n="imageToImage">Image to Image</span>
-                    </button>
-                </nav>
-            </div>
+        <div class="relative max-w-5xl w-full">
+            <!-- Header -->
+            <header class="text-center mb-16 animate-slide-up">
+                <h2 class="text-6xl md:text-7xl lg:text-8xl font-display font-bold mb-6 leading-tight" data-i18n="title">
+                    <span class="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">Paper Cut Art</span>
+                </h2>
+                <p class="text-xl md:text-2xl text-white/60 font-light max-w-2xl mx-auto" data-i18n="subtitle">
+                    Transform your vision into stunning kirigami masterpieces
+                </p>
+            </header>
 
-            <!-- Text-to-Image Mode -->
-            <div id="text-mode-content" class="transition-all duration-300">
-                <div class="space-y-5">
-                    <div class="relative">
-                        <input type="text" id="prompt-input" class="w-full px-5 py-4 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300 placeholder-gray-400 dark:placeholder-gray-500" data-i18n-placeholder="promptPlaceholder">
-                        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <!-- Main Card -->
+            <div class="backdrop-blur-2xl bg-white/5 border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl animate-fade-in">
+                <!-- Prompt Input -->
+                <div class="mb-8">
+                    <div class="relative group">
+                        <input 
+                            type="text" 
+                            id="prompt-input" 
+                            class="w-full px-6 py-5 bg-dark/50 border-2 border-white/10 rounded-2xl text-lg text-white placeholder-white/30 focus:outline-none focus:border-primary/50 transition-all duration-300 font-light"
+                            data-i18n-placeholder="promptPlaceholder"
+                        >
+                        <div class="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
                         </div>
                     </div>
-                    <button id="generate-button" class="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold px-6 py-4 rounded-xl focus:outline-none focus:ring-4 focus:ring-primary-300 transition-all duration-300 transform hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl">
-                        <span class="btn-content flex items-center justify-center"></span>
-                    </button>
                 </div>
-            </div>
 
-            <!-- Image-to-Image Mode -->
-            <div id="image-mode-content" class="hidden transition-all duration-300">
-                <div class="space-y-5">
-                    <label id="image-upload-label" for="image-upload" class="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-xl cursor-pointer bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 hover:from-primary-50 hover:to-accent-50 dark:hover:from-gray-700 dark:hover:to-gray-600 transition-all duration-300 group">
-                        <div class="text-center p-4">
-                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                            <p class="text-base text-gray-600 dark:text-gray-300 font-semibold mb-1" data-i18n="uploadClick">Click or Drag & Drop</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400" data-i18n="uploadFormat">PNG, JPG, WEBP (Max 5MB)</p>
-                        </div>
-                        <input id="image-upload" type="file" class="hidden" accept="image/png, image/jpeg, image/webp" />
-                    </label>
-                    <div id="image-preview-container" class="hidden relative w-full h-40 rounded-lg overflow-hidden border">
-                        <img id="image-preview" src="" alt="Uploaded Image Preview" class="w-full h-full object-contain">
-                        <button id="remove-image-button" class="absolute top-2 right-2 bg-black bg-opacity-50 text-white rounded-full p-1.5 hover:bg-opacity-75 focus:outline-none focus:ring-2 focus:ring-white">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <!-- Style Pills -->
+                <div class="mb-8">
+                    <p class="text-sm text-white/40 mb-4 font-light" data-i18n="styleExamples">Quick Styles</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="style-example-btn group px-5 py-2.5 bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 rounded-full text-sm font-medium transition-all duration-300" data-style="paper cut art, layered">
+                            <span data-i18n="styleClassic">✂️ Classic</span>
+                        </button>
+                        <button class="style-example-btn group px-5 py-2.5 bg-white/5 hover:bg-secondary/20 border border-white/10 hover:border-secondary/50 rounded-full text-sm font-medium transition-all duration-300" data-style="colorful, vibrant, multi-layered">
+                            <span data-i18n="styleColorful">🌈 Colorful</span>
+                        </button>
+                        <button class="style-example-btn group px-5 py-2.5 bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-accent/50 rounded-full text-sm font-medium transition-all duration-300" data-style="3D paper diorama, shadow box">
+                            <span data-i18n="styleDiorama">📦 3D</span>
+                        </button>
+                        <button class="style-example-btn group px-5 py-2.5 bg-white/5 hover:bg-primary/20 border border-white/10 hover:border-primary/50 rounded-full text-sm font-medium transition-all duration-300" data-style="minimalist, simple, clean">
+                            <span data-i18n="styleMinimal">⚪ Minimal</span>
+                        </button>
+                        <button class="style-example-btn group px-5 py-2.5 bg-white/5 hover:bg-secondary/20 border border-white/10 hover:border-secondary/50 rounded-full text-sm font-medium transition-all duration-300" data-style="silhouette, black and white, dramatic">
+                            <span data-i18n="styleSilhouette">🌑 Silhouette</span>
                         </button>
                     </div>
-                    <button id="convert-button" class="w-full bg-green-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                         <span class="btn-content flex items-center justify-center"></span>
-                    </button>
                 </div>
-            </div>
 
-            <!-- Prompt Examples -->
-            <div class="mt-6">
-                <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                    <span data-i18n="styleExamples">Style Examples (Add to your prompt)</span>
-                </label>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <button class="style-example-btn px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:from-primary-100 hover:to-accent-100 dark:hover:from-primary-900 dark:hover:to-accent-900 transition-all duration-200 hover:scale-105" data-style="minimalist, flat design, 2-3 colors">
-                        <span data-i18n="styleMinimalist">🎨 Minimalist</span>
-                    </button>
-                    <button class="style-example-btn px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:from-primary-100 hover:to-accent-100 dark:hover:from-primary-900 dark:hover:to-accent-900 transition-all duration-200 hover:scale-105" data-style="vibrant colors, multi-layered">
-                        <span data-i18n="styleColorful">🌈 Colorful</span>
-                    </button>
-                    <button class="style-example-btn px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:from-primary-100 hover:to-accent-100 dark:hover:from-primary-900 dark:hover:to-accent-900 transition-all duration-200 hover:scale-105" data-style="layered 3D diorama, shadow box effect">
-                        <span data-i18n="styleDiorama">📦 Diorama</span>
-                    </button>
-                    <button class="style-example-btn px-3 py-2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 hover:from-primary-100 hover:to-accent-100 dark:hover:from-primary-900 dark:hover:to-accent-900 transition-all duration-200 hover:scale-105" data-style="black silhouette, dramatic shadows">
-                        <span data-i18n="styleSilhouette">🌑 Silhouette</span>
-                    </button>
-                </div>
-                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400" data-i18n="styleHint">💡 Click to add style keywords to your prompt, or write your own!</p>
-            </div>
-
-            <!-- Result Display -->
-            <div id="result-container" class="mt-8 w-full h-[350px] sm:h-[550px] bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-2xl flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-inner transition-all duration-300">
-                <div id="placeholder" class="text-gray-500 dark:text-gray-400 text-center px-6">
-                    <svg class="w-24 h-24 mx-auto mb-4 text-gray-400 dark:text-gray-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    <p class="text-lg font-medium" data-i18n="resultPlaceholder">Your masterpiece will appear here</p>
-                </div>
-                <div id="loader" class="loader hidden"></div>
-                <img id="image-display" src="" class="hidden w-full h-full object-contain bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 transition-all duration-500" alt="Generated kirie art">
-            </div>
-
-            <!-- Result Actions (e.g., Download) -->
-            <div id="result-actions" class="hidden mt-4 flex justify-center gap-4">
-                <button id="download-button" class="bg-indigo-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-300 transition-transform transform hover:scale-105 active:scale-95">
-                    <span class="flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        ダウンロード
+                <!-- Generate Button -->
+                <button id="generate-button" class="w-full py-5 bg-gradient-to-r from-primary via-secondary to-accent rounded-2xl font-semibold text-lg hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group">
+                    <span class="btn-content flex items-center justify-center gap-3">
+                        <svg class="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span data-i18n="generateButton">Generate Artwork</span>
                     </span>
                 </button>
-            </div>
 
-            <div id="error-message" class="mt-4 text-center text-red-600 font-medium h-5"></div>
+                <!-- Image Upload Section -->
+                <div class="mt-8 pt-8 border-t border-white/10">
+                    <p class="text-sm text-white/60 mb-4 font-light" data-i18n="imageToKirie">画像を切り絵化</p>
+                    <label for="image-upload" class="block cursor-pointer">
+                        <div class="relative group border-2 border-dashed border-white/20 rounded-2xl p-8 hover:border-primary/50 transition-all duration-300 bg-white/5 hover:bg-white/10">
+                            <input type="file" id="image-upload" accept="image/*" class="hidden">
+                            <div class="text-center">
+                                <svg class="w-12 h-12 mx-auto mb-3 text-white/30 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <p class="text-white/60 font-light" data-i18n="uploadImage">画像をアップロード</p>
+                                <p class="text-xs text-white/40 mt-1" data-i18n="uploadHint">PNG, JPG, WEBP</p>
+                            </div>
+                        </div>
+                    </label>
+                    <div id="image-preview-container" class="hidden mt-4">
+                        <div class="relative rounded-2xl overflow-hidden border border-white/10">
+                            <img id="image-preview" class="w-full h-64 object-cover" alt="Preview">
+                            <button id="remove-image" class="absolute top-3 right-3 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <button id="convert-button" class="w-full mt-4 py-4 bg-gradient-to-r from-secondary to-accent rounded-2xl font-semibold hover:shadow-2xl hover:shadow-secondary/20 transition-all duration-300 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="flex items-center justify-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span data-i18n="convertToKirie">切り絵化する</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
 
-            <!-- History Section -->
-            <div id="history-section" class="mt-10 pt-8 border-t-2 border-gray-200 dark:border-gray-700">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <svg class="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span data-i18n="history">Generation History</span>
-                    </h3>
-                    <button id="clear-history-button" class="text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors hidden flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        <span data-i18n="clearHistory">Clear All</span>
+                <!-- Result Display -->
+                <div id="result-container" class="mt-8 relative w-full aspect-square bg-dark/30 rounded-2xl flex items-center justify-center border border-white/5 overflow-hidden backdrop-blur-sm">
+                    <div id="placeholder" class="text-center px-6">
+                        <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center animate-float">
+                            <svg class="w-10 h-10 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <p class="text-lg text-white/40 font-light" data-i18n="resultPlaceholder">Your artwork will appear here</p>
+                    </div>
+                    <div id="loader" class="loader hidden"></div>
+                    <img id="image-display" src="" class="hidden w-full h-full object-contain transition-all duration-700" alt="Generated art">
+                </div>
+
+                <!-- Download Button -->
+                <div id="result-actions" class="hidden mt-6">
+                    <button id="download-button" class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl font-medium transition-all duration-300 flex items-center justify-center gap-3 group">
+                        <svg class="w-5 h-5 group-hover:translate-y-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span data-i18n="download">Download</span>
                     </button>
                 </div>
-                <div id="history-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4"></div>
-                <p id="history-placeholder" class="text-gray-500 dark:text-gray-400 text-center py-8 flex flex-col items-center gap-2">
-                    <svg class="w-16 h-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                    <span data-i18n="noHistory">No history yet. Start creating!</span>
-                </p>
+
+                <div id="error-message" class="mt-4 text-center text-primary/80 font-light text-sm h-5"></div>
             </div>
-        </main>
-    </div>
+        </div>
+    </section>
+
+    <!-- History Section -->
+    <section id="history-section" class="relative px-6 pb-20">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-3xl font-display font-bold flex items-center gap-3">
+                    <span class="text-2xl">⏱️</span>
+                    <span data-i18n="history">Recent Creations</span>
+                </h3>
+                <button id="clear-history-button" class="hidden px-4 py-2 text-sm text-white/40 hover:text-primary transition-colors flex items-center gap-2 group">
+                    <svg class="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    <span data-i18n="clearHistory">Clear</span>
+                </button>
+            </div>
+            <div id="history-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            <p id="history-placeholder" class="text-center text-white/30 py-16 flex flex-col items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                </div>
+                <span data-i18n="noHistory">No creations yet</span>
+            </p>
+        </div>
+    </section>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
 
     <!-- Link to external JavaScript, deferred to improve loading performance -->
     <script type="module" src="/main.js"></script>
