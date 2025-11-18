@@ -1,4 +1,4 @@
-// Netlify Function for AI Kirie Studio API
+// Netlify Function for AI Kirie Studio API (CommonJS)
 // Note: Using global fetch (available in Node 18+)
 
 // Netlify環境であることを示す
@@ -24,7 +24,7 @@ async function downloadImage(url) {
     return await response.arrayBuffer();
 }
 
-export async function handler(event, context) {
+exports.handler = async function(event, context) {
     // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -143,4 +143,4 @@ export async function handler(event, context) {
             body: JSON.stringify({ success: false, error: error.message || 'Internal server error' })
         };
     }
-}
+};
