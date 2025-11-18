@@ -4,5 +4,9 @@ import app from '../../server.js';
 // Netlify環境を設定
 process.env.NETLIFY = 'true';
 
-// ExpressアプリをNetlify Functionsで扱えるようにラップします
-export const handler = serverless(app);
+// ExpressアプリをNetlify Functionsで扱えるようにラップ
+const handler = serverless(app, {
+    basePath: '/api'
+});
+
+export { handler };

@@ -168,10 +168,13 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 AI Kirie Studio Server running on http://localhost:${PORT}`);
-    console.log(`📁 Generated images: ${generatedDir}`);
-    console.log(`🎨 Available styles: ${Object.keys(STYLE_ENHANCERS).join(', ')}`);
-});
+// ローカル環境のみサーバー起動
+if (!isNetlify && process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 AI Kirie Studio Server running on http://localhost:${PORT}`);
+        console.log(`📁 Generated images: ${generatedDir || 'N/A (Netlify)'}`);
+        console.log(`🎨 Available styles: ${Object.keys(STYLE_ENHANCERS).join(', ')}`);
+    });
+}
 
 export default app;
