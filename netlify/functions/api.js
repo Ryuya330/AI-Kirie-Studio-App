@@ -20,10 +20,11 @@ const AI_PROVIDERS = {
 
 // ==================== STYLE CONFIGURATIONS ====================
 // 各スタイルに最適なAIとプロンプトテンプレートを定義
+// 【2025年1月 - FLUX統一版】NanoBanana/TurboはPollinations APIで利用不可のため全てFLUXで動作
 const STYLE_CONFIGS = {
-    // 伝統的な切り絵 - NanoBanana（繊細な線と日本的表現に強い）
+    // 伝統的な切り絵 - FLUX（繊細な線と日本的表現）
     traditional: {
-        ai: 'nanobanana',
+        ai: 'flux',
         name: '伝統切り絵',
         prompt: (text) => `Traditional Japanese kirigami paper cutting art: ${text}. Intricate hand-cut paper craft, delicate lace-like patterns, multiple layers of colored washi paper, traditional motifs (sakura, crane, wave), precise blade work, museum quality craftsmanship, soft natural lighting, cultural heritage aesthetic, masterpiece, 8K ultra detailed`
     },
@@ -42,30 +43,30 @@ const STYLE_CONFIGS = {
         prompt: (text) => `3D paper art shadow box diorama: ${text}. Multiple depth layers (5-7 layers), volumetric paper sculpture, distinct foreground/middleground/background separation, dramatic side lighting creating depth, paper relief technique, miniature scene construction, tilt-shift photography effect, ultra realistic paper texture, 8K resolution`
     },
     
-    // カラフルモダン - Turbo（鮮やかな色彩表現）
+    // カラフルモダン - FLUX（鮮やかな色彩表現）
     modern: {
-        ai: 'turbo',
+        ai: 'flux',
         name: 'カラフルモダン',
         prompt: (text) => `Modern colorful paper cut art: ${text}. Vibrant gradient papers, contemporary pop art aesthetic, bold geometric shapes, rainbow color palette, overlapping translucent layers, playful composition, youth culture influence, Matisse cutout style, bright cheerful mood, glossy finish, 8K sharp details`
     },
     
-    // ミニマル禅 - Turbo（シンプルで洗練された表現）
+    // ミニマル禅 - FLUX（シンプルで洗練された表現）
     zen: {
-        ai: 'turbo',
+        ai: 'flux',
         name: 'ミニマル禅',
         prompt: (text) => `Minimalist zen paper cutting: ${text}. Single continuous line cutting, extreme simplicity, negative space mastery, monochromatic (black on white or white on black), Bauhaus influence, meditative composition, elegant restraint, Japanese ma (間) concept, clean razor-sharp edges, 8K precision`
     },
     
-    // 幻想ファンタジー - NanoBanana（想像力豊かなアート表現）
+    // 幻想ファンタジー - FLUX（想像力豊かなアート表現）
     fantasy: {
-        ai: 'nanobanana',
+        ai: 'flux',
         name: '幻想ファンタジー',
         prompt: (text) => `Fantasy fairytale paper art: ${text}. Magical storybook illustration style, whimsical characters and creatures, enchanted forest or castle setting, layered paper with backlight glow effect, dreamy pastel colors, Lotte Reiniger animation influence, ethereal atmosphere, intricate decorative borders, 8K enchanting details`
     },
     
-    // アールヌーヴォー - NanoBanana（装飾的で有機的な曲線）
+    // アールヌーヴォー - FLUX（装飾的で有機的な曲線）
     nouveau: {
-        ai: 'nanobanana',
+        ai: 'flux',
         name: 'アールヌーヴォー',
         prompt: (text) => `Art Nouveau paper cutting: ${text}. Organic flowing curves, botanical and floral motifs, elegant decorative borders, Alphonse Mucha influence, symmetrical composition, nature-inspired ornamental design, vintage poster aesthetic, gold and jewel tone colors, sophisticated craftsmanship, 8K ornate details`
     },
