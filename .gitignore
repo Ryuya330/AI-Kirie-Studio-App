@@ -1,8 +1,31 @@
+# Environment variables
+.env
+.env.local
+
 # Dependencies
+node_modules/
 /node_modules
 
 # Build output
+dist/
 /dist
 
-# Environment variables
-.env
+# Generated images
+public/generated/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Netlify
+.netlify/

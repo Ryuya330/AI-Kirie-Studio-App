@@ -1,131 +1,241 @@
-// 1. 必要なモジュールをインポート
-const express = require('express');
-const fetch = require('node-fetch');
-const cors = require('cors');
-require('dotenv').config(); // .envファイルから環境変数を読み込む
-const { GoogleGenAI } = require('@google/genai');
-const fs = require('fs').promises;
-const path = require('path');
-const mime = require('mime');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import Replicate from 'replicate';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fetch from 'node-fetch';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// 2. Expressアプリケーションの初期化
+dotenv.config();
+
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// 3. ミドルウェアの設定
-app.use(cors()); // CORSを有効にし、フロントエンドからのリクエストを許可
-app.use(express.json({ limit: '10mb' })); // リクエストボディのJSONをパースする（画像データのために上限を増やす）
-app.use(express.static('public')); // publicディレクトリ内の静的ファイルを提供
+// ミドルウェア
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static('public'));
 
-const API_KEY = process.env.GOOGLE_API_KEY;
+// Replicate API の初期化
+const replicate = new Replicate({
+    auth: process.env.REPLICATE_API_TOKEN,
+});
+
+// generated ディレクトリの確認/作成
+const generatedDir = path.join(__dirname, 'public', 'generated');
+if (!fs.existsSync(generatedDir)) {
+    fs.mkdirSync(generatedDir, { recursive: true });
+}
 
 /**
- * エラーハンドリング用の共通関数
- * @param {Response} res - Expressのレスポンスオブジェクト
- * @param {Error} error - 発生したエラー
- * @param {string} context - エラーが発生したコンテキスト（デバッグ用）
+ * エラーハンドリング
  */
 function handleError(res, error, context) {
     console.error(`[${context}] Error:`, error);
-    res.status(500).json({ message: `Error in ${context}: ${error.message}` });
+    const message = error.message || 'Unknown error occurred';
+    res.status(500).json({ 
+        success: false,
+        message: `${context}でエラーが発生しました: ${message}` 
+    });
 }
 
-// 4. APIエンドポイントの定義
-
-// Special Text-to-Image (Gemini 2.5 Flash) endpoint
-app.post('/api/generate-special', async (req, res) => {
-    try {
-        const ai = new GoogleGenAI(API_KEY);
-        const config = {
-            responseModalities: ['IMAGE', 'TEXT'],
-        };
-        const model = 'gemini-2.5-flash-image';
-        const contents = [{
-            role: 'user',
-            parts: [{
-                text: `Generate an image of a banana wearing a costume.`,
-            }, ],
-        }, ];
-
-        const response = await ai.models.generateContentStream({
-            model,
-            config,
-            contents,
-        });
-
-        let fileIndex = 0;
-        for await (const chunk of response) {
-            if (chunk.candidates?.[0]?.content?.parts?.[0]?.inlineData) {
-                const inlineData = chunk.candidates[0].content.parts[0].inlineData;
-                const fileExtension = mime.getExtension(inlineData.mimeType || '');
-                const buffer = Buffer.from(inlineData.data || '', 'base64');
-                
-                const fileName = `special-${Date.now()}-${fileIndex++}.${fileExtension}`;
-                const filePath = path.join('public', 'generated', fileName);
-                
-                await fs.writeFile(filePath, buffer);
-                
-                const imageUrl = `/generated/${fileName}`;
-                return res.json({ imageUrl });
-            }
-        }
-    } catch (error) {
-        handleError(res, error, 'Special Image Generation');
+/**
+ * 画像URLをダウンロードしてファイルとして保存
+ */
+async function downloadAndSaveImage(imageUrl, fileName) {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.statusText}`);
     }
-});
+    
+    const buffer = await response.arrayBuffer();
+    const filePath = path.join(generatedDir, fileName);
+    fs.writeFileSync(filePath, Buffer.from(buffer));
+    
+    return `/generated/${fileName}`;
+}
 
+/**
+ * 切り絵スタイル用のプロンプトエンハンサー
+ */
+function enhanceKiriePrompt(basePrompt, style) {
+    const styleModifiers = {
+        'シンプル': 'minimalist paper cut art, simple silhouette, clean cuts, flat design, 2-3 colors maximum, geometric shapes',
+        'カラフル': 'vibrant paper cut art, multi-layered colored paper, intricate details, gradient colors, cheerful and bright',
+        'ジオラマ風': 'layered paper cut diorama, 3D paper craft, shadow box effect, depth layers, detailed foreground and background, volumetric',
+        '影絵風': 'silhouette paper cut art, black paper on white background, dramatic shadows, single layer, elegant negative space'
+    };
+    
+    const baseStyle = styleModifiers[style] || styleModifiers['ジオラマ風'];
+    
+    return `${basePrompt}, ${baseStyle}, paper craft aesthetic, high contrast, sharp edges, professional paper cutting art, kirigami style, masterpiece quality, 8k, highly detailed`;
+}
 
-// Text-to-Image (Imagen) 用のエンドポイント
+/**
+ * Text-to-Image Generation (FLUX.1 Schnell - 高速生成)
+ */
 app.post('/api/generate-text', async (req, res) => {
-    const { prompt } = req.body;
-    if (!prompt) {
-        return res.status(400).json({ message: 'Prompt is required' });
-    }
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
-    const payload = { instances: [{ prompt }], parameters: { sampleCount: 1 } };
-
     try {
-        const apiResponse = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!apiResponse.ok) throw new Error(`API request failed with status ${apiResponse.status}`);
+        const { prompt } = req.body;
         
-        const result = await apiResponse.json();
-        res.json(result);
+        if (!prompt) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'プロンプトが必要です' 
+            });
+        }
+
+        console.log('[Text-to-Image] Generating with prompt:', prompt);
+
+        // FLUX.1 Schnellモデルで高速生成
+        const output = await replicate.run(
+            "black-forest-labs/flux-schnell",
+            {
+                input: {
+                    prompt: prompt,
+                    num_outputs: 1,
+                    aspect_ratio: "1:1",
+                    output_format: "png",
+                    output_quality: 90
+                }
+            }
+        );
+
+        // 出力は画像URLの配列
+        const imageUrl = Array.isArray(output) ? output[0] : output;
+        
+        if (!imageUrl) {
+            throw new Error('画像が生成されませんでした');
+        }
+
+        // 画像をダウンロードして保存
+        const fileName = `text-${Date.now()}.png`;
+        const localUrl = await downloadAndSaveImage(imageUrl, fileName);
+
+        console.log('[Text-to-Image] Image saved:', fileName);
+
+        res.json({
+            success: true,
+            imageUrl: localUrl
+        });
+
     } catch (error) {
         handleError(res, error, 'Text-to-Image Generation');
     }
 });
 
-// Image-to-Image (Gemini) 用のエンドポイント
+/**
+ * Image-to-Image Generation (FLUX.1 Schnell with image prompt)
+ */
 app.post('/api/generate-image', async (req, res) => {
-    const { prompt, base64ImageData, mimeType } = req.body;
-    if (!prompt || !base64ImageData || !mimeType) {
-        return res.status(400).json({ message: 'Prompt, base64ImageData, and mimeType are required' });
-    }
-
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${API_KEY}`;
-    const payload = {
-        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: base64ImageData } }] }],
-        generationConfig: { responseModalities: ['IMAGE'] },
-    };
-
     try {
-        const apiResponse = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-        if (!apiResponse.ok) throw new Error(`API request failed with status ${apiResponse.status}`);
+        const { prompt, base64ImageData, mimeType } = req.body;
+        
+        if (!prompt || !base64ImageData || !mimeType) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'プロンプト、画像データ、MIMEタイプが必要です' 
+            });
+        }
 
-        const result = await apiResponse.json();
-        res.json(result);
+        console.log('[Image-to-Image] Converting with prompt:', prompt);
+
+        // Base64をデータURIに変換
+        const imageDataUri = `data:${mimeType};base64,${base64ImageData}`;
+
+        // FLUX.1 Devモデルでimage-to-image変換
+        const output = await replicate.run(
+            "black-forest-labs/flux-dev",
+            {
+                input: {
+                    prompt: prompt,
+                    image: imageDataUri,
+                    num_outputs: 1,
+                    aspect_ratio: "1:1",
+                    output_format: "png",
+                    output_quality: 90,
+                    prompt_strength: 0.8
+                }
+            }
+        );
+
+        const imageUrl = Array.isArray(output) ? output[0] : output;
+        
+        if (!imageUrl) {
+            throw new Error('画像が生成されませんでした');
+        }
+
+        // 画像をダウンロードして保存
+        const fileName = `image-${Date.now()}.png`;
+        const localUrl = await downloadAndSaveImage(imageUrl, fileName);
+
+        console.log('[Image-to-Image] Image saved:', fileName);
+
+        res.json({
+            success: true,
+            imageUrl: localUrl
+        });
+
     } catch (error) {
         handleError(res, error, 'Image-to-Image Generation');
     }
 });
 
-module.exports = app; // Expressアプリをエクスポート
+/**
+ * Special Generation (SDXL with LoRA for paper cut art)
+ */
+app.post('/api/generate-special', async (req, res) => {
+    try {
+        console.log('[Special] Generating special paper-cut banana...');
+
+        const prompt = 'A cute smiling banana character wearing a colorful costume, paper cut art style, kirigami, layered paper craft, vibrant colors, whimsical and cheerful, highly detailed, masterpiece';
+
+        // SDXL with paper-cut style
+        const output = await replicate.run(
+            "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+            {
+                input: {
+                    prompt: prompt,
+                    negative_prompt: "ugly, blurry, low quality, distorted, realistic photo, 3d render",
+                    num_outputs: 1,
+                    aspect_ratio: "1:1",
+                    output_format: "png",
+                    output_quality: 90
+                }
+            }
+        );
+
+        const imageUrl = Array.isArray(output) ? output[0] : output;
+        
+        if (!imageUrl) {
+            throw new Error('画像が生成されませんでした');
+        }
+
+        // 画像をダウンロードして保存
+        const fileName = `special-${Date.now()}.png`;
+        const localUrl = await downloadAndSaveImage(imageUrl, fileName);
+
+        console.log('[Special] Image saved:', fileName);
+
+        res.json({
+            success: true,
+            imageUrl: localUrl
+        });
+
+    } catch (error) {
+        handleError(res, error, 'Special Generation');
+    }
+});
+
+// サーバー起動
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+}
+
+export default app;

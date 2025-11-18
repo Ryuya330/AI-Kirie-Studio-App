@@ -1,5 +1,5 @@
-const serverless = require('serverless-http');
-const app = require('../../server'); // 2つ上の階層にあるserver.jsをインポート
+import serverless from 'serverless-http';
+import app from '../../server.js';
 
 // ExpressアプリをNetlify Functionsで扱えるようにラップします
-module.exports.handler = serverless(app);
+export const handler = serverless(app);
