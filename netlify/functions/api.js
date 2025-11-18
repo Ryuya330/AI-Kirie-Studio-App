@@ -38,7 +38,7 @@ exports.handler = async function(event, context) {
         return { statusCode: 200, headers, body: '' };
     }
 
-    const path = event.path.replace('/.netlify/functions/api', '');
+    const path = event.path.replace('/.netlify/functions/api', '').replace('/api', '');
 
     try {
         // Health check
