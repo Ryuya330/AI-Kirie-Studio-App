@@ -1,5 +1,5 @@
 // Netlify Function for AI Kirie Studio API
-import fetch from 'node-fetch';
+// Note: Using global fetch (available in Node 18+)
 
 // Netlify環境であることを示す
 const isNetlify = true;
