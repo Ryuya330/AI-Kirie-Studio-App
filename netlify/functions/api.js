@@ -36,13 +36,19 @@ const AI_PROVIDERS = {
                 throw new Error("SDK does not support generateImages method");
             }
 
-            const result = await model.generateImages({
+            // タイムアウト付きでGemini呼び出し
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Gemini timeout')), 15000)
+            );
+            
+            const generatePromise = model.generateImages({
                 prompt: prompt,
                 numberOfImages: 1,
                 aspectRatio: "1:1",
                 outputMimeType: "image/jpeg"
             });
             
+            const result = await Promise.race([generatePromise, timeoutPromise]);
             const response = result.response;
             const images = response.images;
             
@@ -57,7 +63,8 @@ const AI_PROVIDERS = {
         } catch (error) {
             console.warn("Gemini/Imagen generation failed, falling back to Flux:", error.message);
             // Fallback to Pollinations FLUX
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+            const seed = Date.now() + Math.floor(Math.random() * 10000);
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
         }
     }
 };
