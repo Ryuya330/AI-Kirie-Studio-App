@@ -11,11 +11,17 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 // ==================== AI PROVIDERS ====================
 // 複数のAIプロバイダーを統合 - 各AIの強みを活かす
 const AI_PROVIDERS = {
-    // FLUX.1 - バランスの取れた高品質生成
-    flux: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`,
+    // FLUX.1 - バランスの取れた高品質生成（最も安定）
+    flux: (prompt) => {
+        const seed = Date.now() + Math.floor(Math.random() * 1000);
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
+    },
     
     // Turbo - 高速生成、シンプルなデザインに最適
-    turbo: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${Date.now()}`,
+    turbo: (prompt) => {
+        const seed = Date.now() + Math.floor(Math.random() * 1000);
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${seed}`;
+    },
     
     // Google Gemini (Imagen 3) - 高度な言語理解と繊細なアート生成
     // 切り絵・伝統芸術に特化した表現力
@@ -119,33 +125,64 @@ const STYLE_CONFIGS = {
 
 
 // ==================== HELPER FUNCTIONS ====================
-async function downloadImage(url, retries = 3) {
+async function downloadImage(url, retries = 5) {
     for (let i = 0; i < retries; i++) {
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 20000); // 20秒タイムアウト
+            const timeout = setTimeout(() => controller.abort(), 18000); // 18秒タイムアウト
             
             const response = await fetch(url, { 
                 signal: controller.signal,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'image/*'
+                }
             });
             
             clearTimeout(timeout);
             
             if (!response.ok) {
-                if (i === retries - 1) throw new Error(`Download failed: ${response.statusText}`);
-                await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+                const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                console.warn(`Download attempt ${i + 1}/${retries} failed: ${errorMsg}`);
+                
+                if (i === retries - 1) {
+                    throw new Error(errorMsg);
+                }
+                
+                // 指数バックオフ
+                await new Promise(resolve => setTimeout(resolve, Math.min(300 * Math.pow(2, i), 3000)));
                 continue;
             }
-            return await response.arrayBuffer();
-        } catch (error) {
-            if (error.name === 'AbortError') {
-                console.warn(`Download timeout on attempt ${i + 1}`);
-            } else {
-                console.warn(`Download attempt ${i + 1} failed:`, error.message);
+            
+            const buffer = await response.arrayBuffer();
+            
+            // 画像データの検証
+            if (buffer.byteLength === 0) {
+                throw new Error('Empty image data received');
             }
-            if (i === retries - 1) throw error;
-            await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+            
+            if (buffer.byteLength < 100) {
+                throw new Error('Image data too small, likely invalid');
+            }
+            
+            console.log(`[Download] Success on attempt ${i + 1}, size: ${buffer.byteLength} bytes`);
+            return buffer;
+            
+        } catch (error) {
+            const isLastAttempt = i === retries - 1;
+            
+            if (error.name === 'AbortError') {
+                console.warn(`[Download] Timeout on attempt ${i + 1}/${retries}`);
+            } else {
+                console.warn(`[Download] Attempt ${i + 1}/${retries} error: ${error.message}`);
+            }
+            
+            if (isLastAttempt) {
+                throw new Error(`Failed after ${retries} attempts: ${error.message}`);
+            }
+            
+            // 指数バックオフで再試行
+            await new Promise(resolve => setTimeout(resolve, Math.min(300 * Math.pow(2, i), 3000)));
         }
     }
 }
