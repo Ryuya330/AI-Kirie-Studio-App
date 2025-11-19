@@ -17,49 +17,40 @@ const AI_PROVIDERS = {
     // Turbo - 高速生成、シンプルなデザインに最適
     turbo: (prompt) => `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${Date.now()}`,
     
-    // Google Gemini - 高度な言語理解と繊細なアート生成
-    // Gemini 2.5 Flash Image - 画像生成特化モデル
+    // Google Gemini (Imagen 3) - 高度な言語理解と繊細なアート生成
+    // 切り絵・伝統芸術に特化した表現力
     gemini: async (prompt) => {
         try {
-            const model = genAI.getGenerativeModel({ 
-                model: 'gemini-2.5-flash-image'
+            // Imagen 3 model for image generation
+            // Docs: https://ai.google.dev/gemini-api/docs/image-generation
+            const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' });
+            
+            // Check if generateImages is supported (requires recent SDK)
+            if (!model.generateImages) {
+                throw new Error("SDK does not support generateImages method");
+            }
+
+            const result = await model.generateImages({
+                prompt: prompt,
+                numberOfImages: 1,
+                aspectRatio: "1:1",
+                outputMimeType: "image/jpeg"
             });
             
-            const result = await model.generateContent({
-                contents: [{
-                    role: 'user',
-                    parts: [{ text: prompt }]
-                }],
-                generationConfig: {
-                    temperature: 0.9,
-                    topK: 40,
-                    topP: 0.95,
-                }
-            });
+            const response = result.response;
+            const images = response.images;
             
-            const response = await result.response;
-            
-            // Gemini画像生成レスポンスから画像URLを取得
-            // 注: 実際のレスポンス形式に応じて調整が必要
-            if (response.candidates && response.candidates[0]) {
-                const candidate = response.candidates[0];
-                if (candidate.content && candidate.content.parts) {
-                    for (const part of candidate.content.parts) {
-                        if (part.inlineData) {
-                            // Base64画像データをdata URLとして返す
-                            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                        }
-                    }
-                }
+            if (!images || images.length === 0) {
+                throw new Error("No images generated");
             }
             
-            // Geminiが画像を生成できない場合はFLUXにフォールバック
-            console.log('[Gemini] No image generated, falling back to FLUX');
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+            // Return Data URL directly
+            // Note: The SDK returns the base64 string in images[0].image
+            return `data:image/jpeg;base64,${images[0].image}`;
             
         } catch (error) {
-            console.error('[Gemini Error]:', error.message);
-            // エラー時はFLUXにフォールバック
+            console.warn("Gemini/Imagen generation failed, falling back to Flux:", error.message);
+            // Fallback to Pollinations FLUX
             return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
         }
     }
@@ -128,34 +119,67 @@ const STYLE_CONFIGS = {
 
 
 // ==================== HELPER FUNCTIONS ====================
-async function downloadImage(url) {
-    // data URL形式の場合はそのまま返す（Gemini画像の場合）
-    if (url.startsWith('data:')) {
-        return url;
+async function downloadImage(url, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, { 
+                timeout: 25000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            if (!response.ok) {
+                if (i === retries - 1) throw new Error(`Download failed: ${response.statusText}`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                continue;
+            }
+            return await response.arrayBuffer();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.warn(`Download attempt ${i + 1} failed, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
     }
-    
-    // 通常のURL画像をダウンロード
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Download failed: ${response.statusText}`);
-    return await response.arrayBuffer();
 }
 
 // 指定されたスタイルに最適なAIとプロンプトを生成
-async function generateWithStyle(userPrompt, styleKey) {
+async function generateWithStyle(userPrompt, styleKey, retries = 2) {
     const config = STYLE_CONFIGS[styleKey] || STYLE_CONFIGS.traditional;
-    const enhancedPrompt = config.prompt(userPrompt);
-    const aiProvider = AI_PROVIDERS[config.ai];
     
-    // Geminiは非同期処理が必要
-    const imageUrl = config.ai === 'gemini' 
-        ? await aiProvider(enhancedPrompt)
-        : aiProvider(enhancedPrompt);
+    // プロンプトが短すぎる場合の補強
+    let enhancedPrompt = config.prompt(userPrompt);
+    if (userPrompt.length < 5) {
+        enhancedPrompt = config.prompt(`beautiful ${userPrompt} scene`);
+    }
     
-    return {
-        imageUrl: imageUrl,
-        model: config.ai.toUpperCase(),
-        styleName: config.name
-    };
+    for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+            const aiProvider = AI_PROVIDERS[config.ai];
+            
+            // Geminiは非同期処理が必要
+            const imageUrl = config.ai === 'gemini' 
+                ? await aiProvider(enhancedPrompt)
+                : aiProvider(enhancedPrompt);
+            
+            return {
+                imageUrl: imageUrl,
+                model: config.ai.toUpperCase(),
+                styleName: config.name,
+                attempt: attempt + 1
+            };
+        } catch (error) {
+            console.error(`Generation attempt ${attempt + 1} failed:`, error.message);
+            if (attempt === retries - 1) {
+                // 最終試行失敗時はFLUXにフォールバック
+                const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+                return {
+                    imageUrl: fallbackUrl,
+                    model: 'FLUX (Fallback)',
+                    styleName: config.name,
+                    attempt: attempt + 1
+                };
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    }
 }
 
 // ==================== NETLIFY HANDLER ====================
@@ -212,14 +236,29 @@ exports.handler = async function(event, context) {
             const { imageUrl, model, styleName } = await generateWithStyle(prompt, style);
             console.log(`[Generate] Using ${model} for style: ${styleName}`);
 
-            // Gemini画像の場合はdata URL形式でそのまま返す
             let dataUrl;
-            if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+            // Check if the URL is already a Data URL (Base64)
+            if (imageUrl.startsWith('data:')) {
                 dataUrl = imageUrl;
             } else {
-                const imageBuffer = await downloadImage(imageUrl);
-                const base64 = Buffer.from(imageBuffer).toString('base64');
-                dataUrl = `data:image/png;base64,${base64}`;
+                // Download from external URL (Pollinations) with retry logic
+                try {
+                    const imageBuffer = await downloadImage(imageUrl);
+                    const base64 = Buffer.from(imageBuffer).toString('base64');
+                    dataUrl = `data:image/png;base64,${base64}`;
+                } catch (downloadError) {
+                    console.error('Image download failed:', downloadError);
+                    return {
+                        statusCode: 500,
+                        headers,
+                        body: JSON.stringify({
+                            success: false,
+                            error: `画像のダウンロードに失敗しました: ${downloadError.message}`,
+                            style: style,
+                            model: model
+                        })
+                    };
+                }
             }
 
             console.log(`[Generate] Success with ${model}`);
@@ -259,9 +298,8 @@ exports.handler = async function(event, context) {
             const basePrompt = 'Beautiful scene transformed into intricate paper cutting art, preserving the original composition and mood';
             const { imageUrl, model, styleName } = await generateWithStyle(basePrompt, style);
 
-            // Gemini画像の場合はdata URL形式でそのまま返す
             let dataUrl;
-            if (typeof imageUrl === 'string' && imageUrl.startsWith('data:')) {
+            if (imageUrl.startsWith('data:')) {
                 dataUrl = imageUrl;
             } else {
                 const imageBuffer = await downloadImage(imageUrl);
