@@ -151,7 +151,7 @@ async function downloadImage(url, retries = 3) {
 }
 
 // 指定されたスタイルに最適なAIとプロンプトを生成
-async function generateWithStyle(userPrompt, styleKey, retries = 2) {
+async function generateWithStyle(userPrompt, styleKey, retries = 3) {
     const config = STYLE_CONFIGS[styleKey] || STYLE_CONFIGS.traditional;
     
     // プロンプトが短すぎる場合の補強
@@ -159,6 +159,8 @@ async function generateWithStyle(userPrompt, styleKey, retries = 2) {
     if (userPrompt.length < 5) {
         enhancedPrompt = config.prompt(`beautiful ${userPrompt} scene`);
     }
+    
+    let lastError = null;
     
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
@@ -169,6 +171,11 @@ async function generateWithStyle(userPrompt, styleKey, retries = 2) {
                 ? await aiProvider(enhancedPrompt)
                 : aiProvider(enhancedPrompt);
             
+            // URLの検証
+            if (!imageUrl || (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:'))) {
+                throw new Error('Invalid image URL generated');
+            }
+            
             return {
                 imageUrl: imageUrl,
                 model: config.ai.toUpperCase(),
@@ -176,20 +183,26 @@ async function generateWithStyle(userPrompt, styleKey, retries = 2) {
                 attempt: attempt + 1
             };
         } catch (error) {
-            console.error(`Generation attempt ${attempt + 1} failed:`, error.message);
-            if (attempt === retries - 1) {
-                // 最終試行失敗時はFLUXにフォールバック
-                const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
-                return {
-                    imageUrl: fallbackUrl,
-                    model: 'FLUX (Fallback)',
-                    styleName: config.name,
-                    attempt: attempt + 1
-                };
+            lastError = error;
+            console.error(`Generation attempt ${attempt + 1}/${retries} failed for ${styleKey}:`, error.message);
+            
+            if (attempt < retries - 1) {
+                // 次の試行前に少し待機
+                await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
             }
-            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
+    
+    // 全ての試行が失敗した場合、FLUXにフォールバック
+    console.warn(`All attempts failed for ${styleKey}, using FLUX fallback`);
+    const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now()}`;
+    return {
+        imageUrl: fallbackUrl,
+        model: 'FLUX (Fallback)',
+        styleName: config.name,
+        attempt: retries,
+        fallback: true
+    };
 }
 
 // ==================== NETLIFY HANDLER ====================
@@ -250,24 +263,39 @@ exports.handler = async function(event, context) {
             // Check if the URL is already a Data URL (Base64)
             if (imageUrl.startsWith('data:')) {
                 dataUrl = imageUrl;
+                console.log(`[Generate] Using pre-encoded image data from ${model}`);
             } else {
                 // Download from external URL (Pollinations) with retry logic
+                console.log(`[Generate] Downloading image from: ${imageUrl.substring(0, 100)}...`);
                 try {
                     const imageBuffer = await downloadImage(imageUrl);
                     const base64 = Buffer.from(imageBuffer).toString('base64');
                     dataUrl = `data:image/png;base64,${base64}`;
+                    console.log(`[Generate] Image downloaded successfully (${imageBuffer.byteLength} bytes)`);
                 } catch (downloadError) {
-                    console.error('Image download failed:', downloadError);
-                    return {
-                        statusCode: 500,
-                        headers,
-                        body: JSON.stringify({
-                            success: false,
-                            error: `画像のダウンロードに失敗しました: ${downloadError.message}`,
-                            style: style,
-                            model: model
-                        })
-                    };
+                    console.error('Image download failed, trying fallback:', downloadError.message);
+                    
+                    // フォールバック: FLUXで再生成
+                    const fallbackPrompt = config.prompt(prompt);
+                    const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now() + 1000}`;
+                    
+                    try {
+                        const fallbackBuffer = await downloadImage(fallbackUrl);
+                        const fallbackBase64 = Buffer.from(fallbackBuffer).toString('base64');
+                        dataUrl = `data:image/png;base64,${fallbackBase64}`;
+                        console.log('[Generate] Fallback successful');
+                    } catch (fallbackError) {
+                        return {
+                            statusCode: 500,
+                            headers,
+                            body: JSON.stringify({
+                                success: false,
+                                error: `画像生成に失敗しました。後ほど再度お試しください。`,
+                                style: style,
+                                model: model
+                            })
+                        };
+                    }
                 }
             }
 
