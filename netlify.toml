@@ -7,6 +7,10 @@
 # Functions設定
 [functions]
   node_bundler = "esbuild"
+  
+# 画像生成Functions用の拡張タイムアウト設定
+[functions."api"]
+  included_files = ["netlify/functions/api.js"]
 
 # PWA用ヘッダー設定
 [[headers]]

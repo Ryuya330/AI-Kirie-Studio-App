@@ -122,20 +122,30 @@ const STYLE_CONFIGS = {
 async function downloadImage(url, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000); // 20秒タイムアウト
+            
             const response = await fetch(url, { 
-                timeout: 25000,
+                signal: controller.signal,
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
+            
+            clearTimeout(timeout);
+            
             if (!response.ok) {
                 if (i === retries - 1) throw new Error(`Download failed: ${response.statusText}`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
                 continue;
             }
             return await response.arrayBuffer();
         } catch (error) {
+            if (error.name === 'AbortError') {
+                console.warn(`Download timeout on attempt ${i + 1}`);
+            } else {
+                console.warn(`Download attempt ${i + 1} failed:`, error.message);
+            }
             if (i === retries - 1) throw error;
-            console.warn(`Download attempt ${i + 1} failed, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+            await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
         }
     }
 }
