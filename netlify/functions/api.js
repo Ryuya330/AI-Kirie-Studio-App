@@ -64,7 +64,7 @@ const AI_PROVIDERS = {
 
 // ==================== STYLE CONFIGURATIONS ====================
 // 各スタイルに最適なAIとプロンプトテンプレートを定義
-// 【2025年1月 - Gemini統合版】FLUX + Turbo + Gemini の3AI混合構成
+// 【2025年1月 - Gemini優先版】安定性重視でGemini (Imagen 3) を優先使用
 const STYLE_CONFIGS = {
     // 伝統的な切り絵 - Gemini（繊細な線と日本的表現に優れる）
     traditional: {
@@ -73,30 +73,30 @@ const STYLE_CONFIGS = {
         prompt: (text) => `Traditional Japanese kirigami paper cutting art: ${text}. Intricate hand-cut paper craft, delicate lace-like patterns, multiple layers of colored washi paper, traditional motifs (sakura, crane, wave), precise blade work, museum quality craftsmanship, soft natural lighting, cultural heritage aesthetic, masterpiece, 8K ultra detailed`
     },
     
-    // 影絵シアター - FLUX（ドラマチックな明暗表現）
+    // 影絵シアター - Gemini（ドラマチックな明暗表現）
     shadow: {
-        ai: 'flux',
+        ai: 'gemini',
         name: '影絵シアター',
         prompt: (text) => `Shadow puppet theater paper art: ${text}. Dramatic silhouette cutting, theatrical lighting from behind, storytelling composition, Indonesian wayang style influence, single layer black paper on illuminated white background, dancing shadows, elegant flowing curves, mystical atmosphere, cinematic quality, 8K resolution`
     },
     
-    // 立体ジオラマ - FLUX（3D表現と空間把握）
+    // 立体ジオラマ - Gemini（3D表現と空間把握）
     diorama: {
-        ai: 'flux',
+        ai: 'gemini',
         name: '立体ジオラマ',
         prompt: (text) => `3D paper art shadow box diorama: ${text}. Multiple depth layers (5-7 layers), volumetric paper sculpture, distinct foreground/middleground/background separation, dramatic side lighting creating depth, paper relief technique, miniature scene construction, tilt-shift photography effect, ultra realistic paper texture, 8K resolution`
     },
     
-    // カラフルモダン - Turbo（鮮やかな色彩表現）
+    // カラフルモダン - Gemini（鮮やかな色彩表現）
     modern: {
-        ai: 'turbo',
+        ai: 'gemini',
         name: 'カラフルモダン',
         prompt: (text) => `Modern colorful paper cut art: ${text}. Vibrant gradient papers, contemporary pop art aesthetic, bold geometric shapes, rainbow color palette, overlapping translucent layers, playful composition, youth culture influence, Matisse cutout style, bright cheerful mood, glossy finish, 8K sharp details`
     },
     
-    // ミニマル禅 - Turbo（シンプルで洗練された表現）
+    // ミニマル禅 - Gemini（シンプルで洗練された表現）
     zen: {
-        ai: 'turbo',
+        ai: 'gemini',
         name: 'ミニマル禅',
         prompt: (text) => `Minimalist zen paper cutting: ${text}. Single continuous line cutting, extreme simplicity, negative space mastery, monochromatic (black on white or white on black), Bauhaus influence, meditative composition, elegant restraint, Japanese ma (間) concept, clean razor-sharp edges, 8K precision`
     },
@@ -115,9 +115,9 @@ const STYLE_CONFIGS = {
         prompt: (text) => `Art Nouveau paper cutting: ${text}. Organic flowing curves, botanical and floral motifs, elegant decorative borders, Alphonse Mucha influence, symmetrical composition, nature-inspired ornamental design, vintage poster aesthetic, gold and jewel tone colors, sophisticated craftsmanship, 8K ornate details`
     },
     
-    // ストリートアート - FLUX（現代的でエッジの効いた表現）
+    // ストリートアート - Gemini（現代的でエッジの効いた表現）
     street: {
-        ai: 'flux',
+        ai: 'gemini',
         name: 'ストリートアート',
         prompt: (text) => `Street art paper cutting graffiti: ${text}. Urban contemporary aesthetic, stencil art technique, bold high contrast, Banksy influence, spray paint texture simulation, rebellious attitude, social commentary, layered paper collage, raw edge finishing, underground culture, 8K edgy details`
     }
