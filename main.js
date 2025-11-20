@@ -226,12 +226,77 @@ async function handleConvert() {
 }
 
 // ==================== 結果表示 ====================
-function showResult(imageUrl, model, styleName) {
-    currentImageUrl = imageUrl;
-    el.resultImg.src = imageUrl;
-    el.resultImg.alt = styleName ? `${styleName} (${model})` : 'Generated artwork';
+async function showResult(imageUrl, model, styleName) {
+    // Show loading state or placeholder if needed
     el.resultArea.classList.remove('hidden');
+    el.resultImg.style.opacity = '0.5';
+    
+    try {
+        // Client-side watermarking to ensure 100% success rate
+        const watermarkedUrl = await addWatermark(imageUrl);
+        currentImageUrl = watermarkedUrl;
+        el.resultImg.src = watermarkedUrl;
+    } catch (e) {
+        console.warn('Client-side watermarking failed, using original:', e);
+        currentImageUrl = imageUrl;
+        el.resultImg.src = imageUrl;
+    }
+    
+    el.resultImg.alt = styleName ? `${styleName} (${model})` : 'Generated artwork';
+    el.resultImg.style.opacity = '1';
     el.resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ==================== 透かし処理 (クライアント側) ====================
+function addWatermark(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // Enable CORS for canvas manipulation
+        
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // 透かし設定
+            const fontSize = Math.floor(img.width * 0.05); // 5% of width
+            const margin = Math.floor(img.width * 0.03);   // 3% of width
+            
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.textAlign = 'end';
+            ctx.textBaseline = 'bottom';
+            
+            // Shadow for visibility
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            // Text color
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            
+            // Draw text "Ryuya"
+            ctx.fillText('Ryuya', img.width - margin, img.height - margin);
+            
+            try {
+                const dataUrl = canvas.toDataURL('image/png');
+                resolve(dataUrl);
+            } catch (e) {
+                reject(e);
+            }
+        };
+        
+        img.onerror = (e) => {
+            // If loading fails (e.g. CORS error on some networks), return original
+            console.warn('Image load error for watermark:', e);
+            resolve(url); 
+        };
+        
+        img.src = url;
+    });
 }
 
 function hideResult() {
