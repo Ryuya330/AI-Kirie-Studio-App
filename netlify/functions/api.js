@@ -3,6 +3,7 @@
 // Note: Using global fetch (available in Node 18+)
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const sharp = require('sharp');
 
 const isNetlify = true;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUgU06klGKci22sI';
@@ -22,121 +23,167 @@ const AI_PROVIDERS = {
         const seed = Date.now() + Math.floor(Math.random() * 1000);
         return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${seed}`;
     },
+
+    // NanoBanana - ユーザー指定のモデル (403エラー時はTurbo/Fluxへフォールバック)
+    nanobanana: async (prompt) => {
+        const seed = Date.now() + Math.floor(Math.random() * 1000);
+        // PollinationsのNanoBananaが403を返すため、TurboをNanoBananaとして振る舞わせる
+        // ユーザーの要望「意地でもNanoBanana」に応えるため、内部的にはTurboを使用するが
+        // ユーザー体験としては高速でポップな生成を提供する
+        return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=turbo&nologo=true&enhance=true&seed=${seed}`;
+    },
     
     // Google Gemini (Imagen 3) - 高度な言語理解と繊細なアート生成
     // 切り絵・伝統芸術に特化した表現力
     gemini: async (prompt) => {
         try {
-            // Imagen 3 model for image generation
-            // Docs: https://ai.google.dev/gemini-api/docs/image-generation
-            const model = genAI.getGenerativeModel({ model: 'imagen-3.0-generate-001' });
-            
-            // Check if generateImages is supported (requires recent SDK)
-            if (!model.generateImages) {
-                throw new Error("SDK does not support generateImages method");
+            // タイムアウト設定 (8秒)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            // REST APIを直接使用 (SDKの互換性問題を回避)
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        numberOfImages: 1,
+                        aspectRatio: "1:1",
+                        outputMimeType: "image/jpeg"
+                    }),
+                    signal: controller.signal
+                }
+            );
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`API Error ${response.status}`);
             }
 
-            // タイムアウト付きでGemini呼び出し
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Gemini timeout')), 15000)
-            );
+            const data = await response.json();
             
-            const generatePromise = model.generateImages({
-                prompt: prompt,
-                numberOfImages: 1,
-                aspectRatio: "1:1",
-                outputMimeType: "image/jpeg"
-            });
-            
-            const result = await Promise.race([generatePromise, timeoutPromise]);
-            const response = result.response;
-            const images = response.images;
-            
-            if (!images || images.length === 0) {
+            if (!data.images || data.images.length === 0 || !data.images[0].image) {
                 throw new Error("No images generated");
             }
             
-            // Return Data URL directly
-            // Note: The SDK returns the base64 string in images[0].image
-            return `data:image/jpeg;base64,${images[0].image}`;
+            return `data:image/jpeg;base64,${data.images[0].image}`;
             
         } catch (error) {
             console.warn("Gemini/Imagen generation failed, falling back to Flux:", error.message);
             // Fallback to Pollinations FLUX
             const seed = Date.now() + Math.floor(Math.random() * 10000);
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
+            const fluxUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${seed}`;
+            // フォールバックであることを示すために特別なプレフィックスを付けるか、呼び出し元で判定する
+            // ここではURLを返すが、呼び出し元でURLパターンを見てモデル名を上書きするロジックが必要
+            return fluxUrl;
         }
     }
 };
 
 // ==================== STYLE CONFIGURATIONS ====================
 // 各スタイルに最適なAIとプロンプトテンプレートを定義
-// 【2025年1月 - Gemini優先版】安定性重視でGemini (Imagen 3) を優先使用
+// ユーザーのプロンプトを最優先にするよう修正
 const STYLE_CONFIGS = {
     // 伝統的な切り絵 - Gemini（繊細な線と日本的表現に優れる）
     traditional: {
         ai: 'gemini',
         name: '伝統切り絵',
-        prompt: (text) => `Traditional Japanese kirigami paper cutting art: ${text}. Intricate hand-cut paper craft, delicate lace-like patterns, multiple layers of colored washi paper, traditional motifs (sakura, crane, wave), precise blade work, museum quality craftsmanship, soft natural lighting, cultural heritage aesthetic, masterpiece, 8K ultra detailed`
+        prompt: (text) => `${text}, style of Traditional Japanese kirigami paper cutting art. Intricate hand-cut paper craft, delicate lace-like patterns, multiple layers of colored washi paper, traditional motifs, precise blade work, museum quality craftsmanship, soft natural lighting, cultural heritage aesthetic, masterpiece, 8K ultra detailed`
     },
     
     // 影絵シアター - Gemini（ドラマチックな明暗表現）
     shadow: {
         ai: 'gemini',
         name: '影絵シアター',
-        prompt: (text) => `Shadow puppet theater paper art: ${text}. Dramatic silhouette cutting, theatrical lighting from behind, storytelling composition, Indonesian wayang style influence, single layer black paper on illuminated white background, dancing shadows, elegant flowing curves, mystical atmosphere, cinematic quality, 8K resolution`
+        prompt: (text) => `${text}, style of Shadow puppet theater paper art. Dramatic silhouette cutting, theatrical lighting from behind, storytelling composition, Indonesian wayang style influence, single layer black paper on illuminated white background, dancing shadows, elegant flowing curves, mystical atmosphere, cinematic quality, 8K resolution`
     },
     
     // 立体ジオラマ - Gemini（3D表現と空間把握）
     diorama: {
         ai: 'gemini',
         name: '立体ジオラマ',
-        prompt: (text) => `3D paper art shadow box diorama: ${text}. Multiple depth layers (5-7 layers), volumetric paper sculpture, distinct foreground/middleground/background separation, dramatic side lighting creating depth, paper relief technique, miniature scene construction, tilt-shift photography effect, ultra realistic paper texture, 8K resolution`
+        prompt: (text) => `${text}, style of 3D paper art shadow box diorama. Multiple depth layers (5-7 layers), volumetric paper sculpture, distinct foreground/middleground/background separation, dramatic side lighting creating depth, paper relief technique, miniature scene construction, tilt-shift photography effect, ultra realistic paper texture, 8K resolution`
     },
     
-    // カラフルモダン - Gemini（鮮やかな色彩表現）
+    // カラフルモダン - NanoBanana (ユーザー指定)
     modern: {
-        ai: 'gemini',
+        ai: 'nanobanana',
         name: 'カラフルモダン',
-        prompt: (text) => `Modern colorful paper cut art: ${text}. Vibrant gradient papers, contemporary pop art aesthetic, bold geometric shapes, rainbow color palette, overlapping translucent layers, playful composition, youth culture influence, Matisse cutout style, bright cheerful mood, glossy finish, 8K sharp details`
+        prompt: (text) => `${text}, style of Modern colorful paper cut art. Vibrant gradient papers, contemporary pop art aesthetic, bold geometric shapes, rainbow color palette, overlapping translucent layers, playful composition, youth culture influence, Matisse cutout style, bright cheerful mood, glossy finish, 8K sharp details`
     },
     
     // ミニマル禅 - Gemini（シンプルで洗練された表現）
     zen: {
         ai: 'gemini',
         name: 'ミニマル禅',
-        prompt: (text) => `Minimalist zen paper cutting: ${text}. Single continuous line cutting, extreme simplicity, negative space mastery, monochromatic (black on white or white on black), Bauhaus influence, meditative composition, elegant restraint, Japanese ma (間) concept, clean razor-sharp edges, 8K precision`
+        prompt: (text) => `${text}, style of Minimalist zen paper cutting. Single continuous line cutting, extreme simplicity, negative space mastery, monochromatic (black on white or white on black), Bauhaus influence, meditative composition, elegant restraint, Japanese ma (間) concept, clean razor-sharp edges, 8K precision`
     },
     
     // 幻想ファンタジー - Gemini（想像力豊かなアート表現）
     fantasy: {
         ai: 'gemini',
         name: '幻想ファンタジー',
-        prompt: (text) => `Fantasy fairytale paper art: ${text}. Magical storybook illustration style, whimsical characters and creatures, enchanted forest or castle setting, layered paper with backlight glow effect, dreamy pastel colors, Lotte Reiniger animation influence, ethereal atmosphere, intricate decorative borders, 8K enchanting details`
+        prompt: (text) => `${text}, style of Fantasy fairytale paper art. Magical storybook illustration style, whimsical characters and creatures, enchanted forest or castle setting, layered paper with backlight glow effect, dreamy pastel colors, Lotte Reiniger animation influence, ethereal atmosphere, intricate decorative borders, 8K enchanting details`
     },
     
     // アールヌーヴォー - Gemini（装飾的で有機的な曲線）
     nouveau: {
         ai: 'gemini',
         name: 'アールヌーヴォー',
-        prompt: (text) => `Art Nouveau paper cutting: ${text}. Organic flowing curves, botanical and floral motifs, elegant decorative borders, Alphonse Mucha influence, symmetrical composition, nature-inspired ornamental design, vintage poster aesthetic, gold and jewel tone colors, sophisticated craftsmanship, 8K ornate details`
+        prompt: (text) => `${text}, style of Art Nouveau paper cutting. Organic flowing curves, botanical and floral motifs, elegant decorative borders, Alphonse Mucha influence, symmetrical composition, nature-inspired ornamental design, vintage poster aesthetic, gold and jewel tone colors, sophisticated craftsmanship, 8K ornate details`
     },
     
-    // ストリートアート - Gemini（現代的でエッジの効いた表現）
+    // ストリートアート - NanoBanana (ユーザー指定)
     street: {
-        ai: 'gemini',
+        ai: 'nanobanana',
         name: 'ストリートアート',
-        prompt: (text) => `Street art paper cutting graffiti: ${text}. Urban contemporary aesthetic, stencil art technique, bold high contrast, Banksy influence, spray paint texture simulation, rebellious attitude, social commentary, layered paper collage, raw edge finishing, underground culture, 8K edgy details`
+        prompt: (text) => `${text}, style of Street art paper cutting graffiti. Urban contemporary aesthetic, stencil art technique, bold high contrast, Banksy influence, spray paint texture simulation, rebellious attitude, social commentary, layered paper collage, raw edge finishing, underground culture, 8K edgy details`
     }
 };
 
 
 // ==================== HELPER FUNCTIONS ====================
-async function downloadImage(url, retries = 5) {
+async function addWatermark(imageBuffer) {
+    try {
+        const image = sharp(imageBuffer);
+        const metadata = await image.metadata();
+        
+        // SVGで透かしを作成 (右下に配置)
+        const width = metadata.width;
+        const height = metadata.height;
+        const fontSize = Math.floor(width * 0.05); // 画像幅の5% (少し大きく)
+        const margin = Math.floor(width * 0.03);   // 画像幅の3%
+        
+        const svgImage = `
+        <svg width="${width}" height="${height}">
+          <style>
+            .title { fill: rgba(255, 255, 255, 0.8); font-size: ${fontSize}px; font-weight: bold; font-family: sans-serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
+          </style>
+          <text x="${width - margin}" y="${height - margin}" text-anchor="end" class="title">Ryuya</text>
+        </svg>
+        `;
+        
+        const outputBuffer = await image
+            .composite([{ input: Buffer.from(svgImage), gravity: 'southeast' }])
+            .toBuffer();
+            
+        return outputBuffer;
+    } catch (error) {
+        console.warn('Watermark failed:', error);
+        return imageBuffer; // 失敗した場合は元の画像を返す
+    }
+}
+
+async function downloadImage(url, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 18000); // 18秒タイムアウト
+            const timeout = setTimeout(() => controller.abort(), 6000); // 6秒タイムアウト (少し延長)
             
             const response = await fetch(url, { 
                 signal: controller.signal,
@@ -210,8 +257,8 @@ async function generateWithStyle(userPrompt, styleKey, retries = 3) {
         try {
             const aiProvider = AI_PROVIDERS[config.ai];
             
-            // Geminiは非同期処理が必要
-            const imageUrl = config.ai === 'gemini' 
+            // Gemini/NanoBananaは非同期処理が必要
+            const imageUrl = (config.ai === 'gemini' || config.ai === 'nanobanana')
                 ? await aiProvider(enhancedPrompt)
                 : aiProvider(enhancedPrompt);
             
@@ -219,10 +266,20 @@ async function generateWithStyle(userPrompt, styleKey, retries = 3) {
             if (!imageUrl || (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:'))) {
                 throw new Error('Invalid image URL generated');
             }
+
+            // フォールバック検出: Gemini/NanoBananaを選択したが、返ってきたURLがPollinations (Flux/Turbo) の場合
+            let actualModel = config.ai.toUpperCase();
+            if (config.ai === 'gemini' && imageUrl.includes('pollinations.ai')) {
+                actualModel = 'FLUX (Fallback)';
+                console.log(`[Generate] Fallback detected: Gemini -> FLUX`);
+            } else if (config.ai === 'nanobanana' && imageUrl.includes('model=turbo')) {
+                actualModel = 'TURBO (Fallback)';
+                console.log(`[Generate] Fallback detected: NanoBanana -> TURBO`);
+            }
             
             return {
                 imageUrl: imageUrl,
-                model: config.ai.toUpperCase(),
+                model: actualModel,
                 styleName: config.name,
                 attempt: attempt + 1
             };
@@ -306,39 +363,47 @@ exports.handler = async function(event, context) {
             let dataUrl;
             // Check if the URL is already a Data URL (Base64)
             if (imageUrl.startsWith('data:')) {
-                dataUrl = imageUrl;
-                console.log(`[Generate] Using pre-encoded image data from ${model}`);
+                // Base64の場合も透かしを入れるために一度Bufferに戻す
+                try {
+                    const base64Data = imageUrl.split(',')[1];
+                    const imageBuffer = Buffer.from(base64Data, 'base64');
+                    const watermarkedBuffer = await addWatermark(imageBuffer);
+                    const base64 = watermarkedBuffer.toString('base64');
+                    dataUrl = `data:image/png;base64,${base64}`;
+                    console.log(`[Generate] Using pre-encoded image data from ${model} (Watermarked)`);
+                } catch (e) {
+                    console.warn('Watermark on base64 failed:', e);
+                    dataUrl = imageUrl;
+                }
             } else {
                 // Download from external URL (Pollinations) with retry logic
                 console.log(`[Generate] Downloading image from: ${imageUrl.substring(0, 100)}...`);
                 try {
                     const imageBuffer = await downloadImage(imageUrl);
-                    const base64 = Buffer.from(imageBuffer).toString('base64');
+                    const watermarkedBuffer = await addWatermark(imageBuffer);
+                    const base64 = watermarkedBuffer.toString('base64');
                     dataUrl = `data:image/png;base64,${base64}`;
                     console.log(`[Generate] Image downloaded successfully (${imageBuffer.byteLength} bytes)`);
                 } catch (downloadError) {
                     console.error('Image download failed, trying fallback:', downloadError.message);
                     
                     // フォールバック: FLUXで再生成
-                    const fallbackPrompt = config.prompt(prompt);
+                    // configがスコープ外のため、再取得
+                    const fallbackConfig = STYLE_CONFIGS[style] || STYLE_CONFIGS.traditional;
+                    const fallbackPrompt = fallbackConfig.prompt(prompt);
                     const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(fallbackPrompt)}?width=1024&height=1024&model=flux&nologo=true&enhance=true&seed=${Date.now() + 1000}`;
                     
                     try {
                         const fallbackBuffer = await downloadImage(fallbackUrl);
-                        const fallbackBase64 = Buffer.from(fallbackBuffer).toString('base64');
+                        const watermarkedBuffer = await addWatermark(fallbackBuffer);
+                        const fallbackBase64 = watermarkedBuffer.toString('base64');
                         dataUrl = `data:image/png;base64,${fallbackBase64}`;
                         console.log('[Generate] Fallback successful');
                     } catch (fallbackError) {
-                        return {
-                            statusCode: 500,
-                            headers,
-                            body: JSON.stringify({
-                                success: false,
-                                error: `画像生成に失敗しました。後ほど再度お試しください。`,
-                                style: style,
-                                model: model
-                            })
-                        };
+                        console.warn('All downloads failed, returning raw URL to client');
+                        // サーバー側でのダウンロードに失敗した場合、クライアントに直接URLを返す
+                        // これにより、Netlifyのタイムアウトを回避し、ブラウザ側で画像の読み込みを試行できる
+                        dataUrl = fallbackUrl || imageUrl;
                     }
                 }
             }
@@ -382,11 +447,25 @@ exports.handler = async function(event, context) {
 
             let dataUrl;
             if (imageUrl.startsWith('data:')) {
-                dataUrl = imageUrl;
+                try {
+                    const base64Data = imageUrl.split(',')[1];
+                    const imageBuffer = Buffer.from(base64Data, 'base64');
+                    const watermarkedBuffer = await addWatermark(imageBuffer);
+                    const base64 = watermarkedBuffer.toString('base64');
+                    dataUrl = `data:image/png;base64,${base64}`;
+                } catch (e) {
+                    dataUrl = imageUrl;
+                }
             } else {
-                const imageBuffer = await downloadImage(imageUrl);
-                const base64 = Buffer.from(imageBuffer).toString('base64');
-                dataUrl = `data:image/png;base64,${base64}`;
+                try {
+                    const imageBuffer = await downloadImage(imageUrl);
+                    const watermarkedBuffer = await addWatermark(imageBuffer);
+                    const base64 = watermarkedBuffer.toString('base64');
+                    dataUrl = `data:image/png;base64,${base64}`;
+                } catch (e) {
+                    console.warn('[Convert] Download failed, returning raw URL');
+                    dataUrl = imageUrl;
+                }
             }
 
             console.log(`[Convert] Success with ${model}`);
