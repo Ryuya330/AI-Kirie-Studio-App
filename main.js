@@ -87,6 +87,20 @@ function init() {
     updateLang();
     renderHistory();
     
+    // 埋め込みモードのチェック
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('embed') === 'true') {
+        document.body.style.background = 'transparent';
+        document.querySelector('header').style.display = 'none';
+        document.querySelector('.container').style.padding = '0';
+        document.querySelector('.container').style.maxWidth = '100%';
+        document.querySelector('.lang-selector').style.display = 'none';
+        // 履歴を非表示にするオプション
+        if (urlParams.get('nohistory') === 'true') {
+            document.querySelector('.card:last-child').style.display = 'none';
+        }
+    }
+    
     // イベントリスナー
     el.generateBtn.addEventListener('click', handleGenerate);
     el.uploadBtn.addEventListener('click', () => el.uploadInput.click());
