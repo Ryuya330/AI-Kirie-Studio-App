@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#000000">
-    <title>NanoBanana Pro Studio | Powered by Gemini 3 Pro</title>
+    <title>Kirie Nexus AI | Powered by Gemini 3 Pro</title>
     <link rel="manifest" href="/manifest.json">
     <style>
         :root {
@@ -39,11 +39,35 @@
             margin: 0 auto;
         }
 
+        /* Language Selector */
+        .lang-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+
+        .lang-select {
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .lang-select:hover {
+            border-color: var(--primary);
+        }
+
         /* Header */
         header {
             text-align: center;
             margin-bottom: 40px;
             position: relative;
+            margin-top: 20px;
         }
 
         .logo {
@@ -55,6 +79,7 @@
             -webkit-text-fill-color: transparent;
             letter-spacing: -1px;
             margin-bottom: 10px;
+            text-transform: uppercase;
         }
 
         .badge {
@@ -293,55 +318,64 @@
     </style>
 </head>
 <body>
+    <div class="lang-selector">
+        <select id="lang-select" class="lang-select">
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+            <option value="ko">한국어</option>
+            <option value="zh">中文</option>
+        </select>
+    </div>
+
     <div class="container">
         <header>
-            <div class="logo">NANOBANANA PRO</div>
-            <div class="badge">POWERED BY GEMINI 3 PRO</div>
+            <div class="logo" data-i18n="app_title">KIRIE NEXUS AI</div>
+            <div class="badge" data-i18n="app_badge">POWERED BY GEMINI 3 PRO</div>
         </header>
 
         <div class="interface">
             <div class="input-group">
-                <label class="input-label">Creative Prompt</label>
-                <textarea id="prompt" placeholder="Describe your vision... (e.g., A cybernetic samurai in a neon rainstorm, paper cut style)"></textarea>
+                <label class="input-label" data-i18n="input_label">Creative Prompt</label>
+                <textarea id="prompt" data-i18n-placeholder="input_placeholder" placeholder="Describe your vision..."></textarea>
             </div>
 
             <div class="input-group">
-                <label class="input-label">Select Style Mode</label>
+                <label class="input-label" data-i18n="style_label">Select Style Mode</label>
                 <div class="style-grid">
                     <div class="style-card active" data-style="ultimate_kirie">
-                        <div class="style-name">Ultimate Kirie</div>
-                        <div class="style-desc">Standard High-Fidelity Paper Cut</div>
+                        <div class="style-name" data-i18n="style_ultimate_name">Ultimate Kirie</div>
+                        <div class="style-desc" data-i18n="style_ultimate_desc">Standard High-Fidelity Paper Cut</div>
                     </div>
                     <div class="style-card" data-style="neon_flux">
-                        <div class="style-name">Neon Flux</div>
-                        <div class="style-desc">Bioluminescent Cyberpunk</div>
+                        <div class="style-name" data-i18n="style_neon_name">Neon Flux</div>
+                        <div class="style-desc" data-i18n="style_neon_desc">Bioluminescent Cyberpunk</div>
                     </div>
                     <div class="style-card" data-style="chrono_shadow">
-                        <div class="style-name">Chrono Shadow</div>
-                        <div class="style-desc">Cinematic Silhouette Art</div>
+                        <div class="style-name" data-i18n="style_chrono_name">Chrono Shadow</div>
+                        <div class="style-desc" data-i18n="style_chrono_desc">Cinematic Silhouette Art</div>
                     </div>
                     <div class="style-card" data-style="quantum_diorama">
-                        <div class="style-name">Quantum Diorama</div>
-                        <div class="style-desc">Volumetric 3D Depth</div>
+                        <div class="style-name" data-i18n="style_quantum_name">Quantum Diorama</div>
+                        <div class="style-desc" data-i18n="style_quantum_desc">Volumetric 3D Depth</div>
                     </div>
                 </div>
             </div>
 
-            <button id="generate-btn" class="generate-btn">Initialize Generation</button>
+            <button id="generate-btn" class="generate-btn" data-i18n="btn_generate">Initialize Generation</button>
 
             <div class="loader" id="loader">
                 <div class="loader-bar">
                     <div class="loader-progress"></div>
                 </div>
-                <div style="font-size: 12px; color: var(--primary); letter-spacing: 2px;">PROCESSING NEURAL DATA</div>
+                <div style="font-size: 12px; color: var(--primary); letter-spacing: 2px;" data-i18n="loader_text">PROCESSING NEURAL DATA</div>
             </div>
 
             <div class="result-area" id="result-area">
                 <div class="result-card">
                     <img id="result-img" class="result-img" alt="Generated Art">
                     <div class="result-actions">
-                        <div style="font-size: 12px; color: #888;">GENERATED BY NANOBANANA PRO</div>
-                        <button id="download-btn" class="download-btn">Download Asset</button>
+                        <div style="font-size: 12px; color: #888;" data-i18n="result_footer">GENERATED BY KIRIE NEXUS AI</div>
+                        <button id="download-btn" class="download-btn" data-i18n="btn_download">Download Asset</button>
                     </div>
                 </div>
             </div>

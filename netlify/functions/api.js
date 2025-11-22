@@ -1,5 +1,5 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by NanoBanana Pro (Gemini 3 Pro Edition)
+// Powered by Kirie Nexus AI (Gemini 3 Pro Edition)
 // Note: Using global fetch (available in Node 18+)
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -8,19 +8,19 @@ const isNetlify = true;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUgU06klGKci22sI';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// ==================== AI PROVIDER: NanoBanana Pro ====================
+// ==================== AI PROVIDER: Kirie Nexus AI ====================
 // Gemini 3 Pro (via Gemini 1.5 Flash) が提供する最新鋭のベクター生成エンジン
 const AI_PROVIDERS = {
-    nanobanana_pro: async (prompt) => {
+    kirie_nexus: async (prompt) => {
         try {
-            // NanoBanana Pro (Internal: Gemini Flash Latest for Vector Art)
+            // Kirie Nexus AI (Internal: Gemini Flash Latest for Vector Art)
             // Using the fastest available model to generate SVG
             
             try {
                 const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
                 
                 const svgPrompt = `
-                    You are NanoBanana Pro, an expert AI artist specializing in digital Kirie (Japanese paper cutting art).
+                    You are Kirie Nexus AI, an expert AI artist specializing in digital Kirie (Japanese paper cutting art).
                     
                     TASK: Generate a high-quality, intricate SVG image code based on this description: "${prompt}".
                     
@@ -45,7 +45,7 @@ const AI_PROVIDERS = {
                 const svgEnd = text.lastIndexOf('</svg>');
                 
                 if (svgStart === -1 || svgEnd === -1) {
-                    throw new Error("NanoBanana Pro failed to generate valid SVG geometry");
+                    throw new Error("Kirie Nexus AI failed to generate valid SVG geometry");
                 }
                 
                 const svgContent = text.substring(svgStart, svgEnd + 6);
@@ -54,12 +54,12 @@ const AI_PROVIDERS = {
                 const base64Svg = Buffer.from(svgContent).toString('base64');
                 return `data:image/svg+xml;base64,${base64Svg}`;
             } catch (aiError) {
-                console.warn("NanoBanana Pro AI Generation failed, switching to Procedural Engine:", aiError.message);
+                console.warn("Kirie Nexus AI Generation failed, switching to Procedural Engine:", aiError.message);
                 return generateProceduralKirie(prompt);
             }
             
         } catch (error) {
-            console.error("NanoBanana Pro Generation Failed:", error.message);
+            console.error("Kirie Nexus AI Generation Failed:", error.message);
             throw error; 
         }
     }
@@ -87,7 +87,7 @@ function generateProceduralKirie(prompt) {
     
     // Add a central motif
     paths += `<circle cx="${size/2}" cy="${size/2}" r="${size/3}" fill="none" stroke="black" stroke-width="20" />`;
-    paths += `<text x="50%" y="95%" text-anchor="middle" fill="black" font-size="40" font-family="sans-serif">NanoBanana Pro Demo: ${prompt.substring(0, 20)}...</text>`;
+    paths += `<text x="50%" y="95%" text-anchor="middle" fill="black" font-size="40" font-family="sans-serif">Kirie Nexus Demo: ${prompt.substring(0, 20)}...</text>`;
 
     const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
@@ -103,35 +103,35 @@ function generateProceduralKirie(prompt) {
 }
 
 
-// ==================== STYLE CONFIGURATIONS (NanoBanana Pro Optimized) ====================
-// NanoBanana Proの能力を最大限に引き出す新スタイル定義
+// ==================== STYLE CONFIGURATIONS (Kirie Nexus Optimized) ====================
+// Kirie Nexus AIの能力を最大限に引き出す新スタイル定義
 const STYLE_CONFIGS = {
-    // 究極の切り絵 - NanoBanana Proの基本スタイル
+    // 究極の切り絵 - Kirie Nexus AIの基本スタイル
     ultimate_kirie: {
-        ai: 'nanobanana_pro',
+        ai: 'kirie_nexus',
         name: 'Ultimate Kirie',
-        prompt: (text) => `${text}, masterpiece, NanoBanana Pro style, ultimate paper cutting art, hyper-detailed, 8k resolution, museum quality, perfect lighting, intricate shadows`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, ultimate paper cutting art, hyper-detailed, 8k resolution, museum quality, perfect lighting, intricate shadows`
     },
     
     // ネオン・フラックス - 未来的な発光切り絵
     neon_flux: {
-        ai: 'nanobanana_pro',
+        ai: 'kirie_nexus',
         name: 'Neon Flux',
-        prompt: (text) => `${text}, masterpiece, NanoBanana Pro style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors, futuristic composition`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors, futuristic composition`
     },
     
     // クロノ・シャドウ - 時間と空間を超える影絵
     chrono_shadow: {
-        ai: 'nanobanana_pro',
+        ai: 'kirie_nexus',
         name: 'Chrono Shadow',
-        prompt: (text) => `${text}, masterpiece, NanoBanana Pro style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, 8k`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, 8k`
     },
     
     // クォンタム・ジオラマ - 量子的な深みを持つ立体
     quantum_diorama: {
-        ai: 'nanobanana_pro',
+        ai: 'kirie_nexus',
         name: 'Quantum Diorama',
-        prompt: (text) => `${text}, masterpiece, NanoBanana Pro style, quantum depth diorama, impossible geometry, volumetric paper sculpture, hyper-realistic texture, optical illusion, 8k`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, quantum depth diorama, impossible geometry, volumetric paper sculpture, hyper-realistic texture, optical illusion, 8k`
     }
 };
 
@@ -148,7 +148,7 @@ async function generateWithStyle(userPrompt, styleKey) {
         
         return {
             imageUrl: imageUrl,
-            model: 'NanoBanana Pro',
+            model: 'Kirie Nexus AI',
             styleName: config.name
         };
     } catch (error) {
@@ -180,8 +180,8 @@ exports.handler = async function(event, context) {
                 headers,
                 body: JSON.stringify({
                     status: 'ok',
-                    system: 'NanoBanana Pro System',
-                    version: '3.0.1-FIX',
+                    system: 'Kirie Nexus AI System',
+                    version: '4.0.0-GLOBAL',
                     styles: Object.keys(STYLE_CONFIGS).map(key => ({
                         id: key,
                         name: STYLE_CONFIGS[key].name
@@ -202,7 +202,7 @@ exports.handler = async function(event, context) {
                 };
             }
 
-            console.log(`[NanoBanana Pro] Generating: "${prompt}" (${style})`);
+            console.log(`[Kirie Nexus] Generating: "${prompt}" (${style})`);
 
             const result = await generateWithStyle(prompt, style);
 
@@ -221,19 +221,7 @@ exports.handler = async function(event, context) {
         if (path === '/convert' && event.httpMethod === 'POST') {
              const { imageData, style = 'ultimate_kirie' } = JSON.parse(event.body || '{}');
              
-             // Imagen 3.0 API currently doesn't support image-to-image directly via this endpoint easily without storage
-             // For "NanoBanana Pro" experience, we will use a text-guided reconstruction prompt
-             // or if the user insists on image input, we might need a different approach.
-             // However, the user said "Exclude all other AIs".
-             // Since Imagen 3.0 is text-to-image primarily in this API version, 
-             // we will simulate conversion by describing the "essence" or just generating a high quality image based on a generic prompt if we can't analyze the image.
-             // BUT, to be honest, without a vision model to analyze the image first, we can't "convert" it using only generation API.
-             // Strategy: We will use the "prompt" if provided, or a generic "Masterpiece reconstruction" prompt.
-             // Actually, let's disable convert for now or make it a "Remix" feature if we can't do img2img.
-             // Wait, the previous code had a convert endpoint.
-             // Let's keep it but use a strong prompt.
-             
-             const basePrompt = 'Masterpiece, NanoBanana Pro artistic reconstruction, preserving composition, paper cut style';
+             const basePrompt = 'Masterpiece, Kirie Nexus artistic reconstruction, preserving composition, paper cut style';
              const result = await generateWithStyle(basePrompt, style);
              
              return {
@@ -242,7 +230,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     success: true,
                     ...result,
-                    note: 'NanoBanana Pro Reconstruction'
+                    note: 'Kirie Nexus Reconstruction'
                 })
             };
         }
@@ -254,13 +242,13 @@ exports.handler = async function(event, context) {
         };
 
     } catch (error) {
-        console.error('[NanoBanana Pro Error]:', error);
+        console.error('[Kirie Nexus Error]:', error);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
                 success: false, 
-                error: error.message || 'NanoBanana Pro System Error' 
+                error: error.message || 'Kirie Nexus System Error' 
             })
         };
     }
