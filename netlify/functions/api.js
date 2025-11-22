@@ -181,7 +181,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     status: 'ok',
                     system: 'NanoBanana Pro System',
-                    version: '3.0.0-PRO',
+                    version: '3.0.1-FIX',
                     styles: Object.keys(STYLE_CONFIGS).map(key => ({
                         id: key,
                         name: STYLE_CONFIGS[key].name
