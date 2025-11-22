@@ -9,50 +9,55 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUg
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // ==================== AI PROVIDER: Kirie Nexus AI ====================
-// Gemini 3 Pro (via Gemini 1.5 Flash) が提供する最新鋭のベクター生成エンジン
+// Gemini 3 Pro (via Felo AI Proxy) が提供する最新鋭の画像生成エンジン
 const AI_PROVIDERS = {
     kirie_nexus: async (prompt) => {
         try {
-            // Kirie Nexus AI (Internal: Gemini Flash Latest for Vector Art)
-            // Using the fastest available model to generate SVG
+            // Kirie Nexus AI (External: Felo AI Gemini Image Gen)
+            // Using the specified external API for high-quality generation
             
             try {
-                const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-                
-                const svgPrompt = `
-                    You are Kirie Nexus AI, an expert AI artist specializing in digital Kirie (Japanese paper cutting art).
-                    
-                    TASK: Generate a high-quality, intricate SVG image code based on this description: "${prompt}".
-                    
-                    REQUIREMENTS:
-                    1. Output ONLY the raw SVG code. No markdown, no explanations.
-                    2. The style must be "Kirie" - bold connected shapes, negative space, paper-cut aesthetic.
-                    3. Use a viewBox="0 0 1024 1024".
-                    4. Ensure all paths are closed and valid.
-                    5. Colors: Use deep blacks (#000000) for the paper, and transparent or white for the background, unless the prompt specifies "Neon" or "Color".
-                    6. Make it detailed and artistic, suitable for a "Pro" studio.
-                `;
+                const response = await fetch('https://api.felo.ai/v1/gemini-image-gen', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer free'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt + ", kirie style, paper cut art, black and white, high contrast, svg style",
+                        resolution: "2048x2048",
+                        model: "gemini-3-pro-image-preview"
+                    })
+                });
 
-                const result = await model.generateContent(svgPrompt);
-                const response = await result.response;
-                let text = response.text();
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Felo AI API Error ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
                 
-                // Clean up markdown if present
-                text = text.replace(/```svg/g, '').replace(/```xml/g, '').replace(/```/g, '').trim();
-                
-                // Validate SVG start/end
-                const svgStart = text.indexOf('<svg');
-                const svgEnd = text.lastIndexOf('</svg>');
-                
-                if (svgStart === -1 || svgEnd === -1) {
-                    throw new Error("Kirie Nexus AI failed to generate valid SVG geometry");
+                // Handle response format (Assuming standard JSON with url or data)
+                // If the API returns a direct URL
+                if (data.url) {
+                    return data.url;
                 }
                 
-                const svgContent = text.substring(svgStart, svgEnd + 6);
+                // If it returns base64 in a data field
+                if (data.data && data.data[0] && data.data[0].url) {
+                    return data.data[0].url;
+                }
                 
-                // Convert to Base64 Data URL
-                const base64Svg = Buffer.from(svgContent).toString('base64');
-                return `data:image/svg+xml;base64,${base64Svg}`;
+                if (data.image) {
+                     // Check if it's base64 or url
+                     if (data.image.startsWith('http')) return data.image;
+                     return `data:image/jpeg;base64,${data.image}`;
+                }
+
+                // Fallback if format is unknown but success
+                console.log("Unknown response format:", JSON.stringify(data).substring(0, 200));
+                throw new Error("Unknown response format from Felo AI");
+
             } catch (aiError) {
                 console.warn("Kirie Nexus AI Generation failed, switching to Procedural Engine:", aiError.message);
                 return generateProceduralKirie(prompt);
