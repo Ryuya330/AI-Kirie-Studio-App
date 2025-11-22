@@ -24,7 +24,7 @@ const AI_PROVIDERS = {
                         'Authorization': 'Bearer free'
                     },
                     body: JSON.stringify({
-                        prompt: prompt + ", kirie style, paper cut art, black and white, high contrast, svg style",
+                        prompt: prompt,
                         resolution: "2048x2048",
                         model: "gemini-3-pro-image-preview"
                     })
@@ -115,28 +115,56 @@ const STYLE_CONFIGS = {
     ultimate_kirie: {
         ai: 'kirie_nexus',
         name: 'Ultimate Kirie',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, ultimate paper cutting art, hyper-detailed, 8k resolution, museum quality, perfect lighting, intricate shadows`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, ultimate paper cutting art, hyper-detailed, 8k resolution, museum quality, perfect lighting, intricate shadows, kirie style, paper cut art, black and white, high contrast, svg style`
     },
     
     // ネオン・フラックス - 未来的な発光切り絵
     neon_flux: {
         ai: 'kirie_nexus',
         name: 'Neon Flux',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors, futuristic composition`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors, futuristic composition, kirie style, paper cut art, svg style`
     },
     
     // クロノ・シャドウ - 時間と空間を超える影絵
     chrono_shadow: {
         ai: 'kirie_nexus',
         name: 'Chrono Shadow',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, 8k`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, 8k, kirie style, paper cut art, svg style`
     },
     
     // クォンタム・ジオラマ - 量子的な深みを持つ立体
     quantum_diorama: {
         ai: 'kirie_nexus',
         name: 'Quantum Diorama',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, quantum depth diorama, impossible geometry, volumetric paper sculpture, hyper-realistic texture, optical illusion, 8k`
+        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, quantum depth diorama, impossible geometry, volumetric paper sculpture, hyper-realistic texture, optical illusion, 8k, kirie style, paper cut art, svg style`
+    },
+
+    // アニメ・ヴィヴィッド - 日本のアニメスタイル
+    anime_vivid: {
+        ai: 'kirie_nexus',
+        name: 'Anime Vivid',
+        prompt: (text) => `${text}, masterpiece, anime style, makoto shinkai style, vibrant colors, detailed background, 8k resolution, cinematic lighting, high quality`
+    },
+
+    // オイル・マスターピース - 油絵・印象派
+    oil_masterpiece: {
+        ai: 'kirie_nexus',
+        name: 'Oil Masterpiece',
+        prompt: (text) => `${text}, masterpiece, oil painting, impasto, textured brushstrokes, classical art style, museum quality, detailed, 8k`
+    },
+
+    // ウォーターカラー・ドリーム - 水彩画
+    watercolor_dream: {
+        ai: 'kirie_nexus',
+        name: 'Watercolor Dream',
+        prompt: (text) => `${text}, masterpiece, watercolor painting, soft edges, dreamy atmosphere, wet on wet technique, artistic, detailed, 8k`
+    },
+
+    // サイバー・リアリズム - フォトリアル
+    cyber_realism: {
+        ai: 'kirie_nexus',
+        name: 'Cyber Realism',
+        prompt: (text) => `${text}, masterpiece, photorealistic, 8k, unreal engine 5 render, ray tracing, cyberpunk, futuristic, highly detailed`
     }
 };
 
