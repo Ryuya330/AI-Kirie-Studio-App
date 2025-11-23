@@ -8,30 +8,38 @@ const isNetlify = true;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUgU06klGKci22sI';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// ==================== AI PROVIDER: Kirie Nexus AI ====================
-// Google Gemini Image Generation API (Imagen 3)
+// ==================== AI PROVIDER: Google AI Nano Banana (Gemini) ====================
+// Google Gemini 画像生成 API (Nano Banana Pro)
 const AI_PROVIDERS = {
     kirie_nexus: async (prompt, imageBase64, mimeType) => {
         try {
-            console.log('[Kirie Nexus] Generating with prompt:', prompt);
+            console.log('[Nano Banana] Generating with prompt:', prompt);
             
-            // Use Google Gemini Imagen 3 API directly
+            // Use Gemini 2.5 Flash Image (Nano Banana) for fast generation
+            // or gemini-3-pro-image-preview (Nano Banana Pro) for higher quality
             const model = genAI.getGenerativeModel({ 
-                model: 'imagen-3.0-generate-001'
+                model: 'gemini-2.5-flash-image'
             });
+            
+            const parts = [{ text: prompt }];
+            
+            // Add image if provided
+            if (imageBase64 && mimeType) {
+                parts.push({
+                    inlineData: {
+                        data: imageBase64,
+                        mimeType: mimeType
+                    }
+                });
+            }
             
             const result = await model.generateContent({
                 contents: [{
                     role: 'user',
-                    parts: [{
-                        text: prompt
-                    }]
+                    parts: parts
                 }],
                 generationConfig: {
-                    temperature: 1,
-                    topK: 40,
-                    topP: 0.95,
-                    maxOutputTokens: 8192,
+                    responseModalities: ['IMAGE']
                 }
             });
             
@@ -41,21 +49,20 @@ const AI_PROVIDERS = {
             if (response.candidates && response.candidates[0]) {
                 const candidate = response.candidates[0];
                 
-                // Check for image in parts
                 if (candidate.content && candidate.content.parts) {
                     for (const part of candidate.content.parts) {
                         if (part.inlineData && part.inlineData.data) {
-                            const mimeType = part.inlineData.mimeType || 'image/jpeg';
-                            return `data:${mimeType};base64,${part.inlineData.data}`;
+                            const imgMimeType = part.inlineData.mimeType || 'image/jpeg';
+                            return `data:${imgMimeType};base64,${part.inlineData.data}`;
                         }
                     }
                 }
             }
             
-            throw new Error('No image data found in Gemini response');
+            throw new Error('No image data found in Nano Banana response');
             
         } catch (error) {
-            console.error('[Kirie Nexus] Generation Failed:', error.message);
+            console.error('[Nano Banana] Generation Failed:', error.message);
             throw new Error(`画像生成に失敗しました: ${error.message}`);
         }
     }
