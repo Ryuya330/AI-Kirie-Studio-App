@@ -42,11 +42,12 @@ const AI_PROVIDERS = {
             console.log('[Pollinations AI] Generating with prompt:', prompt);
             
             // Pollinations AI - 完全無料で認証不要のFlux AI
-            // ネガティブプロンプトで不要な要素を除外（より強力に）
-            const negativePrompt = 'color, colorful, colored, photo, photograph, realistic, 3D render, gradient, soft edges, blur, blurry, watermark, text, letters, signature, username, frame, border, low contrast, grey, gray, faded, dull, messy, chaotic, unclear, low quality, jpeg artifacts, noise';
+            // ネガティブプロンプトで不要な要素を除外（より厳格に）
+            const negativePrompt = 'color, colorful, colored, vibrant colors, rainbow, gradient, multi-color, painted, watercolor, oil painting, photo, photograph, camera, realistic photo, 3D render, CGI, blurry, blur, low quality, pixelated, watermark, text, letters, words, signature, artist name, frame, border, bad anatomy, deformed, ugly, amateur, draft, sketch lines, pencil marks, construction lines';
             
             const encodedPrompt = encodeURIComponent(prompt);
             const encodedNegative = encodeURIComponent(negativePrompt);
+            // Flux-Proモデルでより高品質な生成
             const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=false&negative=${encodedNegative}&seed=${Date.now()}`;
             
             console.log('[Pollinations AI] Fetching from:', imageUrl);
@@ -107,14 +108,42 @@ function generateProceduralKirie(prompt) {
     return `data:image/svg+xml;base64,${base64Svg}`;
 }
 
-// 切り絵専用プロンプト生成（Flux AI最適化版）
+// 切り絵専用プロンプト生成 - 超高品質な芸術的切り絵
 function createKiriePrompt(userPrompt) {
-    // Flux AIが得意とする詳細なスタイル指定
-    // - 高コントラスト
-    // - 精密なディテール
-    // - ドラマチックな構図
-    // - プロフェッショナルなライティング
-    return `${userPrompt}, intricate Japanese Kirie paper cutting art, bold black silhouette on pure white background, extremely detailed ornamental patterns, laser-cut precision, symmetrical traditional motifs, decorative filigree borders, elegant negative space design, masterful papercraft technique, studio photography lighting, 8K ultra sharp details, professional art documentation, museum quality, dramatic shadows, perfect contrast ratio, fine line work, complex geometric patterns`;
+    // 世界最高峰の切り絵スタイル - 複数の芸術様式を組み合わせ
+    const styles = [
+        // 日本の伝統切り絵技法
+        'intricate Japanese Kirie paper cutting art',
+        'traditional Japanese paper craft masterpiece',
+        
+        // 中国の剪紙芸術（世界遺産級の切り絵技術）
+        'Chinese Jianzhi paper cutting art',
+        'UNESCO heritage paper art style',
+        
+        // ヨーロッパのシルエット芸術
+        'Victorian silhouette art',
+        'Gothic ornamental patterns',
+        
+        // 現代の精密切り絵
+        'hyper-detailed laser-cut precision',
+        'architectural paper sculpture',
+        
+        // 視覚的特徴
+        'pure black silhouette on pristine white background',
+        'extreme high contrast monochrome',
+        'incredibly intricate delicate patterns',
+        'masterful negative space composition',
+        'razor-sharp edges and fine details',
+        'symmetrical ornamental design',
+        'elaborate filigree patterns',
+        'museum quality paper art',
+        'award-winning paper cutting',
+        '8K ultra detailed',
+        'professional studio lighting',
+        'fine art photography of paper sculpture'
+    ];
+    
+    return `${userPrompt}, ${styles.join(', ')}`;
 }
 
 async function generateKirieArt(userPrompt, imageBase64, mimeType) {
