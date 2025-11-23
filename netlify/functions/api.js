@@ -47,8 +47,8 @@ const AI_PROVIDERS = {
             
             const encodedPrompt = encodeURIComponent(prompt);
             const encodedNegative = encodeURIComponent(negativePrompt);
-            // Flux-Proモデルでより高品質な生成（enhance=trueでAIの品質向上機能を有効化）
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&negative=${encodedNegative}&seed=${Date.now()}`;
+            // 超高解像度・最高品質設定
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux-pro&nologo=true&enhance=true&private=true&negative=${encodedNegative}&seed=${Date.now()}`;
             
             console.log('[Pollinations AI] Fetching from:', imageUrl);
             
@@ -108,46 +108,59 @@ function generateProceduralKirie(prompt) {
     return `data:image/svg+xml;base64,${base64Svg}`;
 }
 
-// 切り絵専用プロンプト生成 - カラフルで芸術的な切り絵
+// 切り絵専用プロンプト生成 - 最高峰のプロフェッショナル品質
 function createKiriePrompt(userPrompt) {
-    // 世界最高峰のカラフル切り絵スタイル
+    // 世界トップレベルのカラフル切り絵 - プロフェッショナル仕様
     const styles = [
-        // 日本の伝統切り絵技法
+        // 基本スタイル
+        'masterpiece',
+        'best quality',
+        'ultra high resolution',
+        '16K quality',
+        'professional award-winning artwork',
+        
+        // 伝統切り絵技法（日本・中国）
         'intricate Japanese Kirie paper cutting art',
-        'traditional Japanese paper craft masterpiece',
+        'exquisite Chinese Jianzhi paper art',
+        'traditional paper craft masterpiece',
+        'UNESCO world heritage paper art style',
         
-        // 中国の剪紙芸術（世界遺産級の切り絵技術）
-        'Chinese Jianzhi paper cutting art',
-        'colorful traditional paper art',
+        // カラーパレット
+        'stunning vibrant colors',
+        'rich saturated color palette',
+        'gorgeous color gradients',
+        'luxurious metallic accents',
+        'multi-layered translucent colored paper',
+        'radiant jewel tones',
+        'harmonious color composition',
         
-        // カラフルな装飾
-        'vibrant colors',
-        'rich color palette',
-        'beautiful gradients',
-        'multi-layered colored paper',
-        'vivid and colorful',
-        
-        // ヨーロッパのシルエット芸術
-        'Victorian decorative art',
-        'Gothic ornamental patterns',
-        
-        // 現代の精密切り絵
+        // 技術的精密さ
         'hyper-detailed laser-cut precision',
-        'architectural paper sculpture',
+        'microscopic intricate patterns',
+        'razor-sharp clean edges',
+        'impossibly delicate filigree work',
+        'architectural level precision',
         
-        // 視覚的特徴
-        'intricate paper cut silhouette',
-        'extreme high contrast',
-        'incredibly intricate delicate patterns',
-        'masterful negative space composition',
-        'razor-sharp edges and fine details',
-        'symmetrical ornamental design',
-        'elaborate filigree patterns',
-        'museum quality paper art',
-        'award-winning paper cutting',
-        '8K ultra detailed',
-        'professional studio lighting',
-        'fine art photography of paper sculpture'
+        // 芸術的要素
+        'epic dramatic composition',
+        'masterful negative space design',
+        'perfect symmetrical ornamental patterns',
+        'flowing elegant curves',
+        'dynamic depth and layering',
+        'three-dimensional paper sculpture effect',
+        
+        // スタイルとムード
+        'contemporary modern aesthetic',
+        'sophisticated elegant design',
+        'breathtaking visual impact',
+        'gallery-worthy museum piece',
+        
+        // 照明と撮影
+        'cinematic professional lighting',
+        'studio quality photography',
+        'perfect exposure and contrast',
+        'crystal clear focus',
+        'artistic bokeh background'
     ];
     
     return `${userPrompt}, ${styles.join(', ')}`;
