@@ -1,10 +1,8 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by Kirie Nexus AI (Gemini 3 Pro Edition)
-// Note: Using global fetch (available in Node 18+)
+// Powered by Google AI Nano Banana (Gemini 2.5 Flash Image)
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const isNetlify = true;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUgU06klGKci22sI';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -15,8 +13,7 @@ const AI_PROVIDERS = {
         try {
             console.log('[Nano Banana] Generating with prompt:', prompt);
             
-            // Use Gemini 2.5 Flash Image (Nano Banana) for fast generation
-            // or gemini-3-pro-image-preview (Nano Banana Pro) for higher quality
+            // Use Gemini 2.5 Flash Image (Nano Banana)
             const model = genAI.getGenerativeModel({ 
                 model: 'gemini-2.5-flash-image'
             });
@@ -33,16 +30,7 @@ const AI_PROVIDERS = {
                 });
             }
             
-            const result = await model.generateContent({
-                contents: [{
-                    role: 'user',
-                    parts: parts
-                }],
-                generationConfig: {
-                    responseModalities: ['IMAGE']
-                }
-            });
-            
+            const result = await model.generateContent(parts);
             const response = result.response;
             
             // Extract image from response
