@@ -1,6 +1,40 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
 // Powered by Pollinations AI (完全無料・認証不要)
 
+// ==================== 多言語翻訳システム (完全無料) ====================
+// MyMemory Translation API - 完全無料の翻訳API
+async function translateToEnglish(text) {
+    try {
+        // 英語のみの場合はそのまま返す
+        if (/^[a-zA-Z\s\-,\.]+$/.test(text)) {
+            console.log('[Translation] Already in English:', text);
+            return text;
+        }
+
+        console.log('[Translation] Translating to English:', text);
+        
+        const encodedText = encodeURIComponent(text);
+        const url = `https://api.mymemory.translated.net/get?q=${encodedText}&langpair=ja|en`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.responseStatus === 200 && data.responseData.translatedText) {
+            const translated = data.responseData.translatedText;
+            console.log('[Translation] Translated:', translated);
+            return translated;
+        }
+        
+        // 翻訳失敗時は元のテキストを返す
+        console.log('[Translation] Failed, using original text');
+        return text;
+        
+    } catch (error) {
+        console.error('[Translation] Error:', error.message);
+        return text; // エラー時は元のテキストを使用
+    }
+}
+
 // ==================== AI PROVIDER: Pollinations AI (完全無料) ====================
 const AI_PROVIDERS = {
     kirie_nexus: async (prompt, imageBase64, mimeType) => {
@@ -80,7 +114,11 @@ function createKiriePrompt(userPrompt) {
 }
 
 async function generateKirieArt(userPrompt, imageBase64, mimeType) {
-    const enhancedPrompt = createKiriePrompt(userPrompt);
+    // 日本語を英語に翻訳（AIは英語プロンプトの方が精度が高い）
+    const translatedPrompt = await translateToEnglish(userPrompt);
+    console.log('[Kirie] Original:', userPrompt, '→ Translated:', translatedPrompt);
+    
+    const enhancedPrompt = createKiriePrompt(translatedPrompt);
     
     try {
         const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancedPrompt, imageBase64, mimeType);
