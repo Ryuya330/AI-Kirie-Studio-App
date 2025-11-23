@@ -40,6 +40,43 @@ const AI_PROVIDERS = {
     kirie_nexus: async (prompt, imageBase64, mimeType) => {
         try {
             console.log('[Pollinations AI] Generating with prompt:', prompt);
+            console.log('[Pollinations AI] Has source image:', !!imageBase64);
+            
+            // 元画像がある場合の処理
+            if (imageBase64 && imageBase64.includes('base64,')) {
+                console.log('[Image-to-Image] Using source image reference');
+                
+                // プロンプトがない場合はデフォルトの切り絵変換プロンプトを使用
+                const finalPrompt = prompt || 'transform this image into intricate paper cutting art style, Kirie masterpiece';
+                
+                // 元画像の特徴を説明に含める
+                const img2imgPrompt = `${finalPrompt}, maintain the original composition and subject matter, convert to paper art style`;
+                
+                const negativePrompt = 'photo, photograph, camera, realistic photo, 3D render, CGI, blurry, blur, low quality, pixelated, watermark, text, letters, words, signature, artist name, frame, border, bad anatomy, deformed, ugly, amateur, draft, sketch lines, pencil marks, construction lines';
+                
+                const encodedPrompt = encodeURIComponent(img2imgPrompt);
+                const encodedNegative = encodeURIComponent(negativePrompt);
+                
+                // 画像URL方式（Pollinations は img2img 用のパラメータをサポート）
+                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux-pro&nologo=true&enhance=true&private=true&negative=${encodedNegative}&seed=${Date.now()}`;
+                
+                console.log('[Image-to-Image] Fetching from:', imageUrl);
+                
+                const response = await fetch(imageUrl);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Pollinations AI Error ${response.status}: ${errorText}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const base64Image = Buffer.from(arrayBuffer).toString('base64');
+                
+                return `data:image/jpeg;base64,${base64Image}`;
+            }
+            
+            // テキストのみの通常生成
+            console.log('[Text-to-Image] Standard generation');
             
             // Pollinations AI - 完全無料で認証不要のFlux AI
             // ネガティブプロンプト: 低品質・ぼかし・テキストのみ除外（色は許可）
@@ -167,6 +204,38 @@ function createKiriePrompt(userPrompt) {
 }
 
 async function generateKirieArt(userPrompt, imageBase64, mimeType) {
+    // 画像がある場合
+    if (imageBase64) {
+        console.log('[Kirie] Image-to-Image mode');
+        
+        // プロンプトがない場合はデフォルトメッセージ
+        let finalPrompt = userPrompt || 'original image content';
+        
+        // 翻訳（プロンプトがある場合のみ）
+        if (userPrompt && userPrompt.trim()) {
+            finalPrompt = await translateToEnglish(userPrompt);
+            console.log('[Kirie] Translated prompt:', finalPrompt);
+        }
+        
+        // 元画像を切り絵化するプロンプト
+        const img2imgEnhanced = createKiriePrompt(finalPrompt);
+        
+        try {
+            const imageUrl = await AI_PROVIDERS.kirie_nexus(img2imgEnhanced, imageBase64, mimeType);
+            
+            return {
+                imageUrl: imageUrl,
+                model: 'Kirie Studio AI (Image-to-Image)'
+            };
+        } catch (error) {
+            console.error('Kirie image-to-image failed:', error.message);
+            throw error;
+        }
+    }
+    
+    // テキストのみの場合（元の処理）
+    console.log('[Kirie] Text-to-Image mode');
+    
     // 日本語を英語に翻訳（AIは英語プロンプトの方が精度が高い）
     const translatedPrompt = await translateToEnglish(userPrompt);
     console.log('[Kirie] Original:', userPrompt, '→ Translated:', translatedPrompt);
@@ -174,7 +243,7 @@ async function generateKirieArt(userPrompt, imageBase64, mimeType) {
     const enhancedPrompt = createKiriePrompt(translatedPrompt);
     
     try {
-        const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancedPrompt, imageBase64, mimeType);
+        const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancedPrompt, null, null);
         
         return {
             imageUrl: imageUrl,
@@ -219,15 +288,16 @@ exports.handler = async function(event, context) {
         if (path === '/generate' && event.httpMethod === 'POST') {
             const { prompt, image, mimeType } = JSON.parse(event.body || '{}');
 
-            if (!prompt || prompt.trim() === '') {
+            // 画像がある場合はプロンプトなしでもOK
+            if ((!prompt || prompt.trim() === '') && !image) {
                 return {
                     statusCode: 400,
                     headers,
-                    body: JSON.stringify({ success: false, error: 'Prompt required' })
+                    body: JSON.stringify({ success: false, error: 'Prompt or image required' })
                 };
             }
 
-            console.log(`[Kirie Studio] Generating: "${prompt}"`);
+            console.log(`[Kirie Studio] Generating: "${prompt || '(image only)'}"`);
 
             const result = await generateKirieArt(prompt, image, mimeType);
 
@@ -237,7 +307,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     success: true,
                     ...result,
-                    prompt: prompt,
+                    prompt: prompt || 'Image transformation',
                     model: 'Pollinations AI (Flux)'
                 })
             };
