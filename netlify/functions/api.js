@@ -306,7 +306,7 @@ exports.handler = async function(event, context) {
             console.log(`[Gemini Chat] User: "${message}"`);
 
             try {
-                const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+                const model = genAI.getGenerativeModel({ model: 'gemini-3-pro-image-preview' });
                 
                 // システムプロンプト
                 const systemPrompt = `あなたは日本の伝統的な切り絵（Kirie）アート制作の専門AIアシスタントです。
@@ -366,7 +366,7 @@ exports.handler = async function(event, context) {
                         success: true,
                         message: response.replace(/\[GENERATE:.+?\]/g, '').trim(),
                         imageGeneration: imageGeneration,
-                        model: 'Gemini 2.0 Flash'
+                        model: 'Gemini 3 Pro Image Preview'
                     })
                 };
 
