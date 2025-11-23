@@ -12,9 +12,9 @@ const imagePreviewContainer = document.getElementById('image-preview-container')
 const imagePreview = document.getElementById('image-preview');
 const removeImageBtn = document.getElementById('remove-image-btn');
 
-// Model Selectors
-const agentSelect = document.getElementById('agent-select');
-const modelSelect = document.getElementById('model-select');
+// Model Configuration (Fixed)
+const CURRENT_AGENT = 'gemini';
+const CURRENT_IMAGE_MODEL = 'flux';
 
 let conversationHistory = [];
 let currentImage = null; // { data: base64, mimeType: string }
@@ -99,8 +99,8 @@ async function sendMessage() {
         const body = {
             message: message,
             history: conversationHistory,
-            agent: agentSelect.value,
-            imageModel: modelSelect.value
+            agent: CURRENT_AGENT,
+            imageModel: CURRENT_IMAGE_MODEL
         };
         
         if (currentImage) {
