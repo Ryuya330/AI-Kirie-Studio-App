@@ -9,66 +9,15 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 const chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
 
-// ==================== 多言語翻訳システム (完全無料) ====================
-// MyMemory Translation API - 完全無料の翻訳API
-async function translateToEnglish(text) {
-    try {
-        // 英語のみの場合はそのまま返す
-        if (/^[a-zA-Z\s\-,\.]+$/.test(text)) {
-            console.log('[Translation] Already in English:', text);
-            return text;
-        }
-
-        console.log('[Translation] Translating to English:', text);
-        
-        const encodedText = encodeURIComponent(text);
-        const url = `https://api.mymemory.translated.net/get?q=${encodedText}&langpair=ja|en`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.responseStatus === 200 && data.responseData.translatedText) {
-            const translated = data.responseData.translatedText;
-            console.log('[Translation] Translated:', translated);
-            return translated;
-        }
-        
-        // 翻訳失敗時は元のテキストを返す
-        console.log('[Translation] Failed, using original text');
-        return text;
-        
-    } catch (error) {
-        console.error('[Translation] Error:', error.message);
-        return text; // エラー時は元のテキストを使用
-    }
-}
-
-// 汎用画像生成プロンプト強化 - あらゆるジャンルに対応
-function enhancePrompt(userPrompt) {
-    // ユーザーのプロンプトをそのまま尊重しつつ、品質キーワードのみ追加
-    const qualityBoost = [
-        'masterpiece',
-        'best quality',
-        'ultra high resolution',
-        'professional artwork',
-        'stunning detail'
-    ];
-    
-    return `${userPrompt}, ${qualityBoost.join(', ')}`;
-}
+// ==================== Gemini Core Logic ====================
 
 async function generateImage(userPrompt, uploadedImage) {
     console.log('[Ryuya 3 Pro] Image generation requested');
     
     try {
-        // プロンプトを翻訳
-        const translatedPrompt = await translateToEnglish(userPrompt);
-        console.log('[Ryuya 3 Pro] Translated:', translatedPrompt);
-        
-        const enhancedPrompt = enhancePrompt(translatedPrompt);
-        
         // Gemini 2.5 Flash Imageで画像生成
-        const parts = [{ text: enhancedPrompt }];
+        // プロンプトはChatモデルによって既に最適化された英語プロンプトが渡される前提
+        const parts = [{ text: userPrompt }];
         
         // アップロード画像がある場合は参照画像として追加
         if (uploadedImage) {
@@ -101,10 +50,16 @@ async function generateImage(userPrompt, uploadedImage) {
             }
         }
         
-        throw new Error('画像生成に失敗しました');
+        throw new Error('No image data in response');
         
     } catch (error) {
         console.error('[Ryuya 3 Pro] Image generation failed:', error.message);
+        
+        // クォータエラーのハンドリング
+        if (error.message.includes('429') || error.message.includes('Quota')) {
+            throw new Error('画像生成の利用制限(Quota)に達しました。しばらく待ってから再試行するか、プランを確認してください。(Model: Gemini 2.5 Flash Image)');
+        }
+        
         throw new Error(`画像生成に失敗しました: ${error.message}`);
     }
 }
@@ -159,24 +114,24 @@ exports.handler = async function(event, context) {
                 const systemPrompt = `あなたはRyuya 3 Pro - 最先端のAI画像生成アシスタントです。
 ユーザーと自然な会話をしながら、あらゆるジャンルの画像生成をサポートします。
 
-対応ジャンル:
-- イラスト・アート（アニメ、リアル、抽象画など）
-- 風景・建築
-- キャラクターデザイン
-- プロダクトデザイン
-- その他あらゆる画像生成
-
 役割:
-- ユーザーの要望を理解して最適な画像生成プロンプトを作成
-- スタイル、構図、色彩のアドバイス
-- クリエイティブなアイデア提案
+1. ユーザーの要望を深く理解する（文脈、雰囲気、スタイル）。
+2. 画像生成が必要な場合、**画像生成モデルに渡すための最適な英語プロンプト**を作成する。
+3. 会話はユーザーの言語（主に日本語）で行う。
+
+重要: 画像生成を行う場合は、レスポンスの最後に必ず以下の形式でコマンドを含めてください。
+[GENERATE: <ここに詳細な英語プロンプト>]
+
+プロンプト作成のコツ:
+- 具体的で描写的にする (例: "A futuristic city at sunset, cyberpunk style, neon lights, high detail, 8k resolution")
+- 品質向上キーワードを含める (masterpiece, best quality, photorealistic など)
+- ユーザーの意図を汲み取って補完する
 
 会話スタイル:
 - フレンドリーで親しみやすい
 - 創造的で柔軟
 - プロフェッショナル
 
-画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。
 ユーザーが画像をアップロードした場合、その画像を参考に新しい画像を生成したり、画像についてコメントしたりしてください。`;
 
                 // 会話履歴を含めてチャット
