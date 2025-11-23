@@ -4,6 +4,8 @@
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+
+// New elements
 const uploadBtn = document.getElementById('upload-btn');
 const imageUpload = document.getElementById('image-upload');
 const imagePreviewContainer = document.getElementById('image-preview-container');
@@ -11,46 +13,7 @@ const imagePreview = document.getElementById('image-preview');
 const removeImageBtn = document.getElementById('remove-image-btn');
 
 let conversationHistory = [];
-let currentImage = null;
-
-// 画像アップロードボタン
-uploadBtn.addEventListener('click', () => {
-    imageUpload.click();
-});
-
-// 画像選択時
-imageUpload.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-        alert('画像ファイルを選択してください');
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        currentImage = {
-            data: e.target.result,
-            mimeType: file.type
-        };
-        imagePreview.src = currentImage.data;
-        imagePreviewContainer.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
-});
-
-// 画像削除ボタン
-removeImageBtn.addEventListener('click', () => {
-    clearImage();
-});
-
-function clearImage() {
-    currentImage = null;
-    imageUpload.value = '';
-    imagePreview.src = '';
-    imagePreviewContainer.classList.add('hidden');
-}
+let currentImage = null; // { data: base64, mimeType: string }
 
 // サジェスチョンチップのクリック
 document.addEventListener('click', (e) => {
@@ -60,6 +23,40 @@ document.addEventListener('click', (e) => {
         chatInput.focus();
     }
 });
+
+// Image Upload Handlers
+uploadBtn.addEventListener('click', () => imageUpload.click());
+
+imageUpload.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const base64Data = e.target.result.split(',')[1];
+        const mimeType = file.type;
+        
+        currentImage = {
+            data: base64Data,
+            mimeType: mimeType
+        };
+        
+        imagePreview.src = e.target.result;
+        imagePreviewContainer.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+});
+
+removeImageBtn.addEventListener('click', () => {
+    clearImage();
+});
+
+function clearImage() {
+    currentImage = null;
+    imageUpload.value = '';
+    imagePreview.src = '';
+    imagePreviewContainer.style.display = 'none';
+}
 
 // メッセージ送信
 sendBtn.addEventListener('click', () => sendMessage());
@@ -78,10 +75,12 @@ chatInput.addEventListener('input', () => {
 
 async function sendMessage() {
     const message = chatInput.value.trim();
-    if (!message) return;
+    if ((!message || message === '') && !currentImage) return;
 
     // ユーザーメッセージを表示
-    addMessage(message, 'user');
+    const userMessageText = message || '(画像を送信しました)';
+    addMessage(userMessageText, 'user', null, currentImage ? `data:${currentImage.mimeType};base64,${currentImage.data}` : null);
+    
     chatInput.value = '';
     chatInput.style.height = 'auto';
 
@@ -93,28 +92,26 @@ async function sendMessage() {
 
     try {
         // APIに送信
-        const payload = {
+        const body = {
             message: message,
             history: conversationHistory
         };
-
+        
         if (currentImage) {
-            payload.image = currentImage.data;
-            payload.mimeType = currentImage.mimeType;
+            body.image = currentImage.data;
+            body.mimeType = currentImage.mimeType;
         }
+
+        // 画像状態をクリア（送信後）
+        clearImage();
 
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(body)
         });
-
-        // 送信後に画像をクリア
-        if (currentImage) {
-            clearImage();
-        }
 
         const data = await response.json();
 
@@ -150,7 +147,7 @@ async function sendMessage() {
     chatInput.focus();
 }
 
-function addMessage(text, sender, imageGeneration = null) {
+function addMessage(text, sender, imageGeneration = null, uploadedImageUrl = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}-message`;
 
@@ -174,7 +171,20 @@ function addMessage(text, sender, imageGeneration = null) {
 
     content.appendChild(textDiv);
 
-    // 画像生成がある場合
+    // アップロード画像がある場合（ユーザーメッセージ用）
+    if (uploadedImageUrl) {
+        const imageWrapper = document.createElement('div');
+        imageWrapper.className = 'message-image';
+        
+        const img = document.createElement('img');
+        img.src = uploadedImageUrl;
+        img.alt = 'Uploaded Image';
+        
+        imageWrapper.appendChild(img);
+        content.appendChild(imageWrapper);
+    }
+
+    // 画像生成がある場合（AIメッセージ用）
     if (imageGeneration) {
         const imageWrapper = document.createElement('div');
         imageWrapper.className = 'message-image';

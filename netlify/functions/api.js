@@ -263,16 +263,15 @@ exports.handler = async function(event, context) {
         if (path === '/chat' && event.httpMethod === 'POST') {
             const { message, history, image, mimeType } = JSON.parse(event.body || '{}');
 
-            if (!message || message.trim() === '') {
+            if ((!message || message.trim() === '') && !image) {
                 return {
                     statusCode: 400,
                     headers,
-                    body: JSON.stringify({ success: false, error: 'Message required' })
+                    body: JSON.stringify({ success: false, error: 'Message or image required' })
                 };
             }
 
-            console.log(`[Ryuya 3 Pro Chat] User: "${message}"`);
-            if (image) console.log('[Ryuya 3 Pro Chat] Image attached');
+            console.log(`[Ryuya 3 Pro Chat] User: "${message}" (Image: ${!!image})`);
 
             try {
                 // システムプロンプト
@@ -290,7 +289,6 @@ exports.handler = async function(event, context) {
 - ユーザーの要望を理解して最適な画像生成プロンプトを作成
 - スタイル、構図、色彩のアドバイス
 - クリエイティブなアイデア提案
-- 添付された画像がある場合、その画像をもとに新しい画像を生成したり、画像を解説したりします
 
 会話スタイル:
 - フレンドリーで親しみやすい
@@ -298,7 +296,7 @@ exports.handler = async function(event, context) {
 - プロフェッショナル
 
 画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。
-ユーザーが画像をアップロードして「この画像を～にして」と言った場合は、その画像を参照して生成するように [GENERATE: プロンプト] を作成してください。`;
+ユーザーが画像をアップロードした場合、その画像を参考に新しい画像を生成したり、画像についてコメントしたりしてください。`;
 
                 // 会話履歴を含めてチャット
                 const chat = chatModel.startChat({
@@ -310,20 +308,25 @@ exports.handler = async function(event, context) {
                     },
                 });
 
-                let result;
-                if (image) {
-                    // 画像がある場合、マルチモーダル入力として送信
-                    const imagePart = {
-                        inlineData: {
-                            data: image.split(',')[1],
-                            mimeType: mimeType || 'image/jpeg'
-                        }
-                    };
-                    result = await chat.sendMessage([systemPrompt + '\n\nユーザー: ' + message, imagePart]);
+                // メッセージパーツの構築
+                let messageParts = [];
+                if (message) {
+                    messageParts.push(systemPrompt + '\n\nユーザー: ' + message);
                 } else {
-                    result = await chat.sendMessage(systemPrompt + '\n\nユーザー: ' + message);
+                    messageParts.push(systemPrompt + '\n\nユーザー: (画像を送信しました)');
                 }
 
+                // 画像がある場合は追加
+                if (image && mimeType) {
+                    messageParts.push({
+                        inlineData: {
+                            data: image,
+                            mimeType: mimeType
+                        }
+                    });
+                }
+
+                const result = await chat.sendMessage(messageParts);
                 const response = result.response.text();
 
                 console.log(`[Gemini Chat] AI: "${response.substring(0, 100)}..."`);
@@ -337,9 +340,10 @@ exports.handler = async function(event, context) {
                     console.log(`[Ryuya 3 Pro] Image generation requested: "${imagePrompt}"`);
                     
                     try {
-                        // アップロードされた画像があればそれを渡す
+                        // アップロードされた画像がある場合は、画像生成にも使用する
                         const uploadedImage = image ? { data: image, mimeType } : null;
                         const imageResult = await generateImage(imagePrompt, uploadedImage);
+                        
                         imageGeneration = {
                             prompt: imagePrompt,
                             imageUrl: imageResult.imageUrl
