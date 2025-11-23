@@ -1,42 +1,32 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by Hugging Face (Stable Diffusion - 完全無料)
+// Powered by Pollinations AI (完全無料・認証不要)
 
-// ==================== AI PROVIDER: Hugging Face (完全無料) ====================
+// ==================== AI PROVIDER: Pollinations AI (完全無料) ====================
 const AI_PROVIDERS = {
     kirie_nexus: async (prompt, imageBase64, mimeType) => {
         try {
-            console.log('[Hugging Face] Generating with prompt:', prompt);
+            console.log('[Pollinations AI] Generating with prompt:', prompt);
             
-            const response = await fetch(
-                "https://router.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        inputs: prompt,
-                        parameters: {
-                            num_inference_steps: 30,
-                            guidance_scale: 7.5
-                        }
-                    }),
-                }
-            );
+            // Pollinations AI - 完全無料で認証不要のStable Diffusion API
+            const encodedPrompt = encodeURIComponent(prompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+            
+            console.log('[Pollinations AI] Fetching from:', imageUrl);
+            
+            const response = await fetch(imageUrl);
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`Hugging Face API Error ${response.status}: ${errorText}`);
+                throw new Error(`Pollinations AI Error ${response.status}: ${errorText}`);
             }
 
-            const blob = await response.blob();
-            const arrayBuffer = await blob.arrayBuffer();
+            const arrayBuffer = await response.arrayBuffer();
             const base64Image = Buffer.from(arrayBuffer).toString('base64');
             
-            return `data:image/png;base64,${base64Image}`;
+            return `data:image/jpeg;base64,${base64Image}`;
             
         } catch (error) {
-            console.error('[Hugging Face] Generation Failed:', error.message);
+            console.error('[Pollinations AI] Generation Failed:', error.message);
             throw new Error(`画像生成に失敗しました: ${error.message}`);
         }
     }
@@ -152,7 +142,7 @@ exports.handler = async function(event, context) {
                     success: true,
                     ...result,
                     prompt: prompt,
-                    model: 'Hugging Face Stable Diffusion XL'
+                    model: 'Pollinations AI (Flux)'
                 })
             };
         }
