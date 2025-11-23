@@ -5,7 +5,6 @@ const el = {
     prompt: document.getElementById('prompt'),
     imageUpload: document.getElementById('image-upload'),
     generateBtn: document.getElementById('generate-btn'),
-    styleCards: document.querySelectorAll('.style-card'),
     loader: document.getElementById('loader'),
     resultArea: document.getElementById('result-area'),
     resultImg: document.getElementById('result-img'),
@@ -13,7 +12,6 @@ const el = {
     langSelect: document.getElementById('lang-select')
 };
 
-let currentStyle = 'ultimate_kirie';
 let currentImageUrl = null;
 let currentLang = 'ja'; // Default to Japanese
 
@@ -154,15 +152,6 @@ function init() {
     // Set initial language
     setLanguage('ja');
 
-    // Style Selection
-    el.styleCards.forEach(card => {
-        card.addEventListener('click', () => {
-            el.styleCards.forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            currentStyle = card.dataset.style;
-        });
-    });
-
     // Generate Action
     el.generateBtn.addEventListener('click', handleGenerate);
 
@@ -228,7 +217,6 @@ async function handleGenerate() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: prompt,
-                style: currentStyle,
                 image: imageBase64,
                 mimeType: mimeType
             })
