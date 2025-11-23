@@ -47,8 +47,8 @@ const AI_PROVIDERS = {
             
             const encodedPrompt = encodeURIComponent(prompt);
             const encodedNegative = encodeURIComponent(negativePrompt);
-            // Flux-Proモデルでより高品質な生成
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=false&negative=${encodedNegative}&seed=${Date.now()}`;
+            // Flux-Proモデルでより高品質な生成（enhance=trueでAIの品質向上機能を有効化）
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true&negative=${encodedNegative}&seed=${Date.now()}`;
             
             console.log('[Pollinations AI] Fetching from:', imageUrl);
             
