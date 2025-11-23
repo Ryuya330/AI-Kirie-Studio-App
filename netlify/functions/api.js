@@ -7,9 +7,13 @@ const AI_PROVIDERS = {
         try {
             console.log('[Pollinations AI] Generating with prompt:', prompt);
             
-            // Pollinations AI - 完全無料で認証不要のStable Diffusion API
+            // Pollinations AI - 完全無料で認証不要のFlux AI
+            // ネガティブプロンプトで不要な要素を除外
+            const negativePrompt = 'color, colorful, photo, photograph, realistic, 3D, gradient, blur, watermark, text, signature, frame, border';
+            
             const encodedPrompt = encodeURIComponent(prompt);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=true`;
+            const encodedNegative = encodeURIComponent(negativePrompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&enhance=false&negative=${encodedNegative}&seed=${Date.now()}`;
             
             console.log('[Pollinations AI] Fetching from:', imageUrl);
             
@@ -71,7 +75,8 @@ function generateProceduralKirie(prompt) {
 
 // 切り絵専用プロンプト生成
 function createKiriePrompt(userPrompt) {
-    return `${userPrompt}, Japanese traditional paper cutting art (Kirie), intricate detailed silhouette, black paper cut on white background, high contrast, masterpiece, sharp edges, delicate patterns, traditional Japanese art style, studio lighting, professional photograph of paper art`;
+    // より強力な切り絵スタイル指定
+    return `${userPrompt}, Japanese paper cutting art, Kirie style, monochrome silhouette, black cut paper on white background, intricate detailed patterns, sharp edges, traditional papercraft, high contrast black and white, delicate cutout design, paper art masterpiece, clean silhouette`;
 }
 
 async function generateKirieArt(userPrompt, imageBase64, mimeType) {
