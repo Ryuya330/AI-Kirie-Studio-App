@@ -43,116 +43,6 @@ async function translateToEnglish(text) {
     }
 }
 
-// ==================== AI PROVIDER: Pollinations AI (完全無料) ====================
-const AI_PROVIDERS = {
-    kirie_nexus: async (prompt, imageBase64, mimeType) => {
-        try {
-            console.log('[Pollinations AI] Generating with prompt:', prompt);
-            console.log('[Pollinations AI] Has source image:', !!imageBase64);
-            
-            // 元画像がある場合の処理
-            if (imageBase64 && imageBase64.includes('base64,')) {
-                console.log('[Image-to-Image] Using source image reference');
-                
-                // プロンプトがない場合はデフォルトの切り絵変換プロンプトを使用
-                const finalPrompt = prompt || 'transform this image into intricate paper cutting art style, Kirie masterpiece';
-                
-                // 元画像の特徴を説明に含める
-                const img2imgPrompt = `${finalPrompt}, maintain the original composition and subject matter, convert to paper art style`;
-                
-                const negativePrompt = 'photo, photograph, camera, realistic photo, 3D render, CGI, blurry, blur, low quality, pixelated, watermark, text, letters, words, signature, artist name, frame, border, bad anatomy, deformed, ugly, amateur, draft, sketch lines, pencil marks, construction lines';
-                
-                const encodedPrompt = encodeURIComponent(img2imgPrompt);
-                const encodedNegative = encodeURIComponent(negativePrompt);
-                
-                // 画像URL方式（Pollinations は img2img 用のパラメータをサポート）
-                const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux-pro&nologo=true&enhance=true&private=true&negative=${encodedNegative}&seed=${Date.now()}`;
-                
-                console.log('[Image-to-Image] Fetching from:', imageUrl);
-                
-                const response = await fetch(imageUrl);
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Pollinations AI Error ${response.status}: ${errorText}`);
-                }
-                
-                const arrayBuffer = await response.arrayBuffer();
-                const base64Image = Buffer.from(arrayBuffer).toString('base64');
-                
-                return `data:image/jpeg;base64,${base64Image}`;
-            }
-            
-            // テキストのみの通常生成
-            console.log('[Text-to-Image] Standard generation');
-            
-            // Pollinations AI - 完全無料で認証不要のFlux AI
-            // ネガティブプロンプト: 低品質・ぼかし・テキストのみ除外（色は許可）
-            const negativePrompt = 'photo, photograph, camera, realistic photo, 3D render, CGI, blurry, blur, low quality, pixelated, watermark, text, letters, words, signature, artist name, frame, border, bad anatomy, deformed, ugly, amateur, draft, sketch lines, pencil marks, construction lines';
-            
-            const encodedPrompt = encodeURIComponent(prompt);
-            const encodedNegative = encodeURIComponent(negativePrompt);
-            // 超高解像度・最高品質設定
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1536&height=1536&model=flux-pro&nologo=true&enhance=true&private=true&negative=${encodedNegative}&seed=${Date.now()}`;
-            
-            console.log('[Pollinations AI] Fetching from:', imageUrl);
-            
-            const response = await fetch(imageUrl);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Pollinations AI Error ${response.status}: ${errorText}`);
-            }
-
-            const arrayBuffer = await response.arrayBuffer();
-            const base64Image = Buffer.from(arrayBuffer).toString('base64');
-            
-            return `data:image/jpeg;base64,${base64Image}`;
-            
-        } catch (error) {
-            console.error('[Pollinations AI] Generation Failed:', error.message);
-            throw new Error(`画像生成に失敗しました: ${error.message}`);
-        }
-    }
-};
-
-// ==================== PROCEDURAL FALLBACK ENGINE ====================
-// AIが利用できない場合でも、美しい幾何学的な切り絵を生成するエンジン
-function generateProceduralKirie(prompt) {
-    const size = 1024;
-    const seed = prompt.length; // Simple seed
-    
-    // Generate random geometric shapes
-    let paths = '';
-    const numShapes = 20 + (seed % 30);
-    
-    for (let i = 0; i < numShapes; i++) {
-        const cx = (Math.sin(i * seed) * 0.4 + 0.5) * size;
-        const cy = (Math.cos(i * seed) * 0.4 + 0.5) * size;
-        const r = (Math.abs(Math.sin(i * seed * 2)) * 0.1 + 0.05) * size;
-        
-        // Create complex paths (simulating paper cuts)
-        paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="black" />`;
-        paths += `<rect x="${cx - r/2}" y="${cy - r/2}" width="${r}" height="${r}" transform="rotate(${i*15} ${cx} ${cy})" fill="black" />`;
-    }
-    
-    // Add a central motif
-    paths += `<circle cx="${size/2}" cy="${size/2}" r="${size/3}" fill="none" stroke="black" stroke-width="20" />`;
-    paths += `<text x="50%" y="95%" text-anchor="middle" fill="black" font-size="40" font-family="sans-serif">Kirie Nexus Demo: ${prompt.substring(0, 20)}...</text>`;
-
-    const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
-            <rect width="100%" height="100%" fill="white"/>
-            <g opacity="0.9">
-                ${paths}
-            </g>
-        </svg>
-    `;
-    
-    const base64Svg = Buffer.from(svg).toString('base64');
-    return `data:image/svg+xml;base64,${base64Svg}`;
-}
-
 // 汎用画像生成プロンプト強化 - あらゆるジャンルに対応
 function enhancePrompt(userPrompt) {
     // ユーザーのプロンプトをそのまま尊重しつつ、品質キーワードのみ追加
@@ -215,16 +105,7 @@ async function generateImage(userPrompt, uploadedImage) {
         
     } catch (error) {
         console.error('[Ryuya 3 Pro] Image generation failed:', error.message);
-        
-        // フォールバック: Pollinations AI
-        console.log('[Ryuya 3 Pro] Falling back to Pollinations AI');
-        const translatedPrompt = await translateToEnglish(userPrompt);
-        const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancePrompt(translatedPrompt), uploadedImage?.data, uploadedImage?.mimeType);
-        
-        return {
-            imageUrl: imageUrl,
-            model: 'Pollinations AI (Fallback)'
-        };
+        throw new Error(`画像生成に失敗しました: ${error.message}`);
     }
 }
 
@@ -252,7 +133,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     status: 'ok',
                     system: 'Ryuya 3 Pro System',
-                    version: '7.0.0-DUAL-GEMINI',
+                    version: '7.1.0-GEMINI-ONLY',
                     chat: 'Gemini 2.5 Flash',
                     image: 'Gemini 2.5 Flash Image'
                 })
@@ -405,24 +286,6 @@ exports.handler = async function(event, context) {
             };
         }
 
-        // 変換エンドポイント (画像to画像)
-        if (path === '/convert' && event.httpMethod === 'POST') {
-             const { imageData, style = 'ultimate_kirie' } = JSON.parse(event.body || '{}');
-             
-             const basePrompt = 'Masterpiece, Kirie Nexus artistic reconstruction, preserving composition, paper cut style';
-             const result = await generateWithStyle(basePrompt, style);
-             
-             return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({
-                    success: true,
-                    ...result,
-                    note: 'Kirie Nexus Reconstruction'
-                })
-            };
-        }
-
         return {
             statusCode: 404,
             headers,
@@ -430,13 +293,13 @@ exports.handler = async function(event, context) {
         };
 
     } catch (error) {
-        console.error('[Kirie Nexus Error]:', error);
+        console.error('[Ryuya 3 Pro Error]:', error);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
                 success: false, 
-                error: error.message || 'Kirie Nexus System Error' 
+                error: error.message || 'Ryuya 3 Pro System Error' 
             })
         };
     }
