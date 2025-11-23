@@ -4,7 +4,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Google Gemini API設定（環境変数から取得）
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDSEV0r9N-K3pOBSXfqVZ8Yn3gG_VN5Qv8';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAPrAjMeUl7hrfjx0fac0NcR0oB8zCFYDk';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // ==================== 多言語翻訳システム (完全無料) ====================
