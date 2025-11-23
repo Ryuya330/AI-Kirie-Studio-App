@@ -1,7 +1,7 @@
 
 async function testGenerate() {
-    console.log('Testing NanoBanana Pro Generation...');
-    const url = 'https://ai-kirie-studio-app.netlify.app/.netlify/functions/api/generate';
+    console.log('Testing Ryuya AI Chat Generation...');
+    const url = 'https://ryuya-ai-chat.netlify.app/.netlify/functions/api/generate';
     
     try {
         const response = await fetch(url, {
