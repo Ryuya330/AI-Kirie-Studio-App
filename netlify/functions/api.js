@@ -9,63 +9,54 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDxguoJUmZr6dez44CbUg
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // ==================== AI PROVIDER: Kirie Nexus AI ====================
-// Gemini 3 Pro (via Felo AI Proxy) が提供する最新鋭の画像生成エンジン
+// Google Gemini Image Generation API (Imagen 3)
 const AI_PROVIDERS = {
-    kirie_nexus: async (prompt) => {
+    kirie_nexus: async (prompt, imageBase64, mimeType) => {
         try {
-            // Kirie Nexus AI (External: Felo AI Gemini Image Gen)
-            // Using the specified external API for high-quality generation
+            console.log('[Kirie Nexus] Generating with prompt:', prompt);
             
-            try {
-                const response = await fetch('https://api.felo.ai/v1/gemini-image-gen', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer free'
-                    },
-                    body: JSON.stringify({
-                        prompt: prompt,
-                        resolution: "2048x2048",
-                        model: "gemini-3-pro-image-preview"
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Felo AI API Error ${response.status}: ${errorText}`);
+            // Use Google Gemini Imagen 3 API directly
+            const model = genAI.getGenerativeModel({ 
+                model: 'imagen-3.0-generate-001'
+            });
+            
+            const result = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [{
+                        text: prompt
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 1,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 8192,
                 }
-
-                const data = await response.json();
+            });
+            
+            const response = result.response;
+            
+            // Extract image from response
+            if (response.candidates && response.candidates[0]) {
+                const candidate = response.candidates[0];
                 
-                // Handle response format (Assuming standard JSON with url or data)
-                // If the API returns a direct URL
-                if (data.url) {
-                    return data.url;
+                // Check for image in parts
+                if (candidate.content && candidate.content.parts) {
+                    for (const part of candidate.content.parts) {
+                        if (part.inlineData && part.inlineData.data) {
+                            const mimeType = part.inlineData.mimeType || 'image/jpeg';
+                            return `data:${mimeType};base64,${part.inlineData.data}`;
+                        }
+                    }
                 }
-                
-                // If it returns base64 in a data field
-                if (data.data && data.data[0] && data.data[0].url) {
-                    return data.data[0].url;
-                }
-                
-                if (data.image) {
-                     // Check if it's base64 or url
-                     if (data.image.startsWith('http')) return data.image;
-                     return `data:image/jpeg;base64,${data.image}`;
-                }
-
-                // Fallback if format is unknown but success
-                console.log("Unknown response format:", JSON.stringify(data).substring(0, 200));
-                throw new Error("Unknown response format from Felo AI");
-
-            } catch (aiError) {
-                console.warn("Kirie Nexus AI Generation failed, switching to Procedural Engine:", aiError.message);
-                return generateProceduralKirie(prompt);
             }
             
+            throw new Error('No image data found in Gemini response');
+            
         } catch (error) {
-            console.error("Kirie Nexus AI Generation Failed:", error.message);
-            throw error; 
+            console.error('[Kirie Nexus] Generation Failed:', error.message);
+            throw new Error(`画像生成に失敗しました: ${error.message}`);
         }
     }
 };
@@ -115,61 +106,61 @@ const STYLE_CONFIGS = {
     ultimate_kirie: {
         ai: 'kirie_nexus',
         name: 'Ultimate Kirie',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, ultimate paper cutting art, hyper-detailed, 8k resolution, museum quality, perfect lighting, intricate shadows, kirie style, paper cut art, black and white, high contrast, svg style`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, Kirie Nexus style, ultimate paper cutting art, single sheet paper cut, intricate lace-like patterns, hyper-detailed, 8k resolution, museum quality, dramatic lighting, deep shadows, high contrast, black and white with subtle gold accents, svg style, clean lines, negative space`
     },
     
     // ネオン・フラックス - 未来的な発光切り絵
     neon_flux: {
         ai: 'kirie_nexus',
         name: 'Neon Flux',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors, futuristic composition, kirie style, paper cut art, svg style`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, Kirie Nexus style, bioluminescent paper art, cyberpunk aesthetic, glowing edges, deep black background, vibrant neon colors (cyan, magenta, electric yellow), futuristic composition, volumetric lighting, ray tracing, kirie style, paper cut art, svg style`
     },
     
     // クロノ・シャドウ - 時間と空間を超える影絵
     chrono_shadow: {
         ai: 'kirie_nexus',
         name: 'Chrono Shadow',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, 8k, kirie style, paper cut art, svg style`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, Kirie Nexus style, multidimensional shadow art, ethereal silhouette, time-lapse effect, cinematic lighting, mystical atmosphere, fog, mystery, monochrome with sepia tones, 8k, kirie style, paper cut art, svg style`
     },
     
     // クォンタム・ジオラマ - 量子的な深みを持つ立体
     quantum_diorama: {
         ai: 'kirie_nexus',
         name: 'Quantum Diorama',
-        prompt: (text) => `${text}, masterpiece, Kirie Nexus style, quantum depth diorama, impossible geometry, volumetric paper sculpture, hyper-realistic texture, optical illusion, 8k, kirie style, paper cut art, svg style`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, Kirie Nexus style, quantum depth diorama, impossible geometry, layered paper sculpture, volumetric 3d, hyper-realistic texture, optical illusion, macro photography, depth of field, 8k, kirie style`
     },
 
     // アニメ・ヴィヴィッド - 日本のアニメスタイル
     anime_vivid: {
         ai: 'kirie_nexus',
         name: 'Anime Vivid',
-        prompt: (text) => `${text}, masterpiece, anime style, makoto shinkai style, vibrant colors, detailed background, 8k resolution, cinematic lighting, high quality`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, anime style, makoto shinkai style, ufotable style, vibrant colors, detailed background, lens flare, atmospheric lighting, 8k resolution, cinematic composition, highly detailed, expressive`
     },
 
     // オイル・マスターピース - 油絵・印象派
     oil_masterpiece: {
         ai: 'kirie_nexus',
         name: 'Oil Masterpiece',
-        prompt: (text) => `${text}, masterpiece, oil painting, impasto, textured brushstrokes, classical art style, museum quality, detailed, 8k`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, oil painting, impasto, thick textured brushstrokes, classical art style, dramatic lighting, chiaroscuro, museum quality, detailed, 8k, rich colors, traditional media`
     },
 
     // ウォーターカラー・ドリーム - 水彩画
     watercolor_dream: {
         ai: 'kirie_nexus',
         name: 'Watercolor Dream',
-        prompt: (text) => `${text}, masterpiece, watercolor painting, soft edges, dreamy atmosphere, wet on wet technique, artistic, detailed, 8k`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, watercolor painting, wet on wet technique, soft edges, dreamy atmosphere, pastel colors, artistic, splashing ink, detailed, 8k, paper texture, ethereal`
     },
 
     // サイバー・リアリズム - フォトリアル
     cyber_realism: {
         ai: 'kirie_nexus',
         name: 'Cyber Realism',
-        prompt: (text) => `${text}, masterpiece, photorealistic, 8k, unreal engine 5 render, ray tracing, cyberpunk, futuristic, highly detailed`
+        prompt: (text) => `(Subject: ${text}), masterpiece, best quality, photorealistic, 8k, unreal engine 5 render, ray tracing, global illumination, cyberpunk, futuristic, highly detailed, cinematic camera, sharp focus, professional photography`
     }
 };
 
 // 指定されたスタイルに最適なAIとプロンプトを生成
-async function generateWithStyle(userPrompt, styleKey) {
+async function generateWithStyle(userPrompt, styleKey, imageBase64, mimeType) {
     const config = STYLE_CONFIGS[styleKey] || STYLE_CONFIGS.ultimate_kirie;
     
     // プロンプト強化
@@ -177,7 +168,7 @@ async function generateWithStyle(userPrompt, styleKey) {
     
     try {
         const aiProvider = AI_PROVIDERS[config.ai];
-        const imageUrl = await aiProvider(enhancedPrompt);
+        const imageUrl = await aiProvider(enhancedPrompt, imageBase64, mimeType);
         
         return {
             imageUrl: imageUrl,
@@ -225,7 +216,7 @@ exports.handler = async function(event, context) {
 
         // 生成エンドポイント
         if (path === '/generate' && event.httpMethod === 'POST') {
-            const { prompt, style = 'ultimate_kirie' } = JSON.parse(event.body || '{}');
+            const { prompt, style = 'ultimate_kirie', image, mimeType } = JSON.parse(event.body || '{}');
 
             if (!prompt || prompt.trim() === '') {
                 return {
@@ -237,7 +228,7 @@ exports.handler = async function(event, context) {
 
             console.log(`[Kirie Nexus] Generating: "${prompt}" (${style})`);
 
-            const result = await generateWithStyle(prompt, style);
+            const result = await generateWithStyle(prompt, style, image, mimeType);
 
             return {
                 statusCode: 200,

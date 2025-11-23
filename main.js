@@ -3,6 +3,7 @@
 
 const el = {
     prompt: document.getElementById('prompt'),
+    imageUpload: document.getElementById('image-upload'),
     generateBtn: document.getElementById('generate-btn'),
     styleCards: document.querySelectorAll('.style-card'),
     loader: document.getElementById('loader'),
@@ -22,6 +23,7 @@ const translations = {
         app_badge: "POWERED BY GEMINI 3 PRO",
         input_label: "クリエイティブ・プロンプト",
         input_placeholder: "あなたのビジョンを描写してください... (例: ネオンの雨の中のサイバー侍、切り絵スタイル)",
+        image_label: "ソース画像 (オプション)",
         style_label: "スタイルモード選択",
         style_ultimate_name: "究極の切り絵",
         style_ultimate_desc: "標準的な高精細切り絵",
@@ -52,6 +54,7 @@ const translations = {
         app_badge: "POWERED BY GEMINI 3 PRO",
         input_label: "Creative Prompt",
         input_placeholder: "Describe your vision... (e.g., A cybernetic samurai in a neon rainstorm, paper cut style)",
+        image_label: "Source Image (Optional)",
         style_label: "Select Style Mode",
         style_ultimate_name: "Ultimate Kirie",
         style_ultimate_desc: "Standard High-Fidelity Paper Cut",
@@ -82,6 +85,7 @@ const translations = {
         app_badge: "POWERED BY GEMINI 3 PRO",
         input_label: "크리에이티브 프롬프트",
         input_placeholder: "비전을 설명해주세요... (예: 네온 비 속의 사이버 사무라이, 종이 오리기 스타일)",
+        image_label: "소스 이미지 (선택 사항)",
         style_label: "스타일 모드 선택",
         style_ultimate_name: "궁극의 키리에",
         style_ultimate_desc: "표준 고해상도 종이 오리기",
@@ -112,6 +116,7 @@ const translations = {
         app_badge: "POWERED BY GEMINI 3 PRO",
         input_label: "创意提示词",
         input_placeholder: "描述您的愿景... (例如：霓虹雨中的赛博武士，剪纸风格)",
+        image_label: "源图像 (可选)",
         style_label: "选择风格模式",
         style_ultimate_name: "终极剪纸",
         style_ultimate_desc: "标准高保真剪纸",
@@ -209,12 +214,23 @@ async function handleGenerate() {
     el.resultArea.style.display = 'none';
 
     try {
+        let imageBase64 = null;
+        let mimeType = null;
+        if (el.imageUpload.files.length > 0) {
+            const file = el.imageUpload.files[0];
+            // Resize and compress image to avoid payload limits
+            imageBase64 = await resizeAndConvertToBase64(file);
+            mimeType = "image/jpeg";
+        }
+
         const response = await fetch('/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 prompt: prompt,
-                style: currentStyle
+                style: currentStyle,
+                image: imageBase64,
+                mimeType: mimeType
             })
         });
 
@@ -242,6 +258,53 @@ async function handleGenerate() {
     } finally {
         setLoading(false);
     }
+}
+
+function resizeAndConvertToBase64(file, maxWidth = 1024) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxWidth || height > maxWidth) {
+                if (width > height) {
+                    height = Math.round(height * (maxWidth / width));
+                    width = maxWidth;
+                } else {
+                    width = Math.round(width * (maxWidth / height));
+                    height = maxWidth;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Get base64 without prefix for API
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            resolve(dataUrl.split(',')[1]);
+            
+            URL.revokeObjectURL(img.src);
+        };
+        img.onerror = reject;
+    });
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            // Remove data:image/jpeg;base64, prefix
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+    });
 }
 
 function setLoading(isLoading) {
@@ -286,7 +349,7 @@ function addWatermark(url) {
             ctx.shadowOffsetY = 0;
             
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.fillText('Ryuya', img.width - margin, img.height - margin);
+            ctx.fillText('Made in Ryuya', img.width - margin, img.height - margin);
             
             try {
                 resolve(canvas.toDataURL('image/jpeg', 0.95));
