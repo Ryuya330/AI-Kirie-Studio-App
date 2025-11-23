@@ -57,7 +57,7 @@ async function generateImage(userPrompt, uploadedImage) {
         
         // クォータエラーのハンドリング
         if (error.message.includes('429') || error.message.includes('Quota')) {
-            throw new Error('画像生成の利用制限(Quota)に達しました。Google AI Studioで課金設定(Pay-as-you-go)を有効にするか、しばらく待ってから再試行してください。(Model: Gemini 2.5 Flash Image)');
+            throw new Error('利用制限(Quota)により生成できませんでした。Google AI Studioでの課金設定(Pay-as-you-go)が有効であれば、この制限は解除され自由に利用できます。設定をご確認ください。(Model: Gemini 2.5 Flash Image)');
         }
         
         throw new Error(`画像生成に失敗しました: ${error.message}`);
