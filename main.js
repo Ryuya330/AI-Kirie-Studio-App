@@ -4,8 +4,53 @@
 const chatMessages = document.getElementById('chat-messages');
 const chatInput = document.getElementById('chat-input');
 const sendBtn = document.getElementById('send-btn');
+const uploadBtn = document.getElementById('upload-btn');
+const imageUpload = document.getElementById('image-upload');
+const imagePreviewContainer = document.getElementById('image-preview-container');
+const imagePreview = document.getElementById('image-preview');
+const removeImageBtn = document.getElementById('remove-image-btn');
 
 let conversationHistory = [];
+let currentImage = null;
+
+// 画像アップロードボタン
+uploadBtn.addEventListener('click', () => {
+    imageUpload.click();
+});
+
+// 画像選択時
+imageUpload.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('画像ファイルを選択してください');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        currentImage = {
+            data: e.target.result,
+            mimeType: file.type
+        };
+        imagePreview.src = currentImage.data;
+        imagePreviewContainer.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+});
+
+// 画像削除ボタン
+removeImageBtn.addEventListener('click', () => {
+    clearImage();
+});
+
+function clearImage() {
+    currentImage = null;
+    imageUpload.value = '';
+    imagePreview.src = '';
+    imagePreviewContainer.classList.add('hidden');
+}
 
 // サジェスチョンチップのクリック
 document.addEventListener('click', (e) => {
@@ -48,16 +93,28 @@ async function sendMessage() {
 
     try {
         // APIに送信
+        const payload = {
+            message: message,
+            history: conversationHistory
+        };
+
+        if (currentImage) {
+            payload.image = currentImage.data;
+            payload.mimeType = currentImage.mimeType;
+        }
+
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                message: message,
-                history: conversationHistory
-            })
+            body: JSON.stringify(payload)
         });
+
+        // 送信後に画像をクリア
+        if (currentImage) {
+            clearImage();
+        }
 
         const data = await response.json();
 

@@ -261,7 +261,7 @@ exports.handler = async function(event, context) {
 
         // Gemini Chatエンドポイント
         if (path === '/chat' && event.httpMethod === 'POST') {
-            const { message, history } = JSON.parse(event.body || '{}');
+            const { message, history, image, mimeType } = JSON.parse(event.body || '{}');
 
             if (!message || message.trim() === '') {
                 return {
@@ -272,6 +272,7 @@ exports.handler = async function(event, context) {
             }
 
             console.log(`[Ryuya 3 Pro Chat] User: "${message}"`);
+            if (image) console.log('[Ryuya 3 Pro Chat] Image attached');
 
             try {
                 // システムプロンプト
@@ -289,13 +290,15 @@ exports.handler = async function(event, context) {
 - ユーザーの要望を理解して最適な画像生成プロンプトを作成
 - スタイル、構図、色彩のアドバイス
 - クリエイティブなアイデア提案
+- 添付された画像がある場合、その画像をもとに新しい画像を生成したり、画像を解説したりします
 
 会話スタイル:
 - フレンドリーで親しみやすい
 - 創造的で柔軟
 - プロフェッショナル
 
-画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。`;
+画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。
+ユーザーが画像をアップロードして「この画像を～にして」と言った場合は、その画像を参照して生成するように [GENERATE: プロンプト] を作成してください。`;
 
                 // 会話履歴を含めてチャット
                 const chat = chatModel.startChat({
@@ -307,7 +310,20 @@ exports.handler = async function(event, context) {
                     },
                 });
 
-                const result = await chat.sendMessage(systemPrompt + '\n\nユーザー: ' + message);
+                let result;
+                if (image) {
+                    // 画像がある場合、マルチモーダル入力として送信
+                    const imagePart = {
+                        inlineData: {
+                            data: image.split(',')[1],
+                            mimeType: mimeType || 'image/jpeg'
+                        }
+                    };
+                    result = await chat.sendMessage([systemPrompt + '\n\nユーザー: ' + message, imagePart]);
+                } else {
+                    result = await chat.sendMessage(systemPrompt + '\n\nユーザー: ' + message);
+                }
+
                 const response = result.response.text();
 
                 console.log(`[Gemini Chat] AI: "${response.substring(0, 100)}..."`);
@@ -321,7 +337,9 @@ exports.handler = async function(event, context) {
                     console.log(`[Ryuya 3 Pro] Image generation requested: "${imagePrompt}"`);
                     
                     try {
-                        const imageResult = await generateImage(imagePrompt, null);
+                        // アップロードされた画像があればそれを渡す
+                        const uploadedImage = image ? { data: image, mimeType } : null;
+                        const imageResult = await generateImage(imagePrompt, uploadedImage);
                         imageGeneration = {
                             prompt: imagePrompt,
                             imageUrl: imageResult.imageUrl
