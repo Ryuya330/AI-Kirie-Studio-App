@@ -1,61 +1,42 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by Google AI Nano Banana (Gemini 2.5 Flash Image)
+// Powered by Hugging Face (Stable Diffusion - 完全無料)
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-    console.error('GEMINI_API_KEY is not set in environment variables');
-}
-
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-
-// ==================== AI PROVIDER: Google AI Nano Banana (Gemini) ====================
-// Google Gemini 画像生成 API (Nano Banana Pro)
+// ==================== AI PROVIDER: Hugging Face (完全無料) ====================
 const AI_PROVIDERS = {
     kirie_nexus: async (prompt, imageBase64, mimeType) => {
         try {
-            console.log('[Nano Banana] Generating with prompt:', prompt);
+            console.log('[Hugging Face] Generating with prompt:', prompt);
             
-            // Use Gemini 2.5 Flash Image (Nano Banana)
-            const model = genAI.getGenerativeModel({ 
-                model: 'gemini-2.5-flash-image'
-            });
-            
-            const parts = [{ text: prompt }];
-            
-            // Add image if provided
-            if (imageBase64 && mimeType) {
-                parts.push({
-                    inlineData: {
-                        data: imageBase64,
-                        mimeType: mimeType
-                    }
-                });
-            }
-            
-            const result = await model.generateContent(parts);
-            const response = result.response;
-            
-            // Extract image from response
-            if (response.candidates && response.candidates[0]) {
-                const candidate = response.candidates[0];
-                
-                if (candidate.content && candidate.content.parts) {
-                    for (const part of candidate.content.parts) {
-                        if (part.inlineData && part.inlineData.data) {
-                            const imgMimeType = part.inlineData.mimeType || 'image/jpeg';
-                            return `data:${imgMimeType};base64,${part.inlineData.data}`;
+            const response = await fetch(
+                "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        inputs: prompt,
+                        parameters: {
+                            num_inference_steps: 30,
+                            guidance_scale: 7.5
                         }
-                    }
+                    }),
                 }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Hugging Face API Error ${response.status}: ${errorText}`);
             }
+
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const base64Image = Buffer.from(arrayBuffer).toString('base64');
             
-            throw new Error('No image data found in Nano Banana response');
+            return `data:image/png;base64,${base64Image}`;
             
         } catch (error) {
-            console.error('[Nano Banana] Generation Failed:', error.message);
+            console.error('[Hugging Face] Generation Failed:', error.message);
             throw new Error(`画像生成に失敗しました: ${error.message}`);
         }
     }
@@ -236,7 +217,8 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     success: true,
                     ...result,
-                    prompt: prompt
+                    prompt: prompt,
+                    model: 'Hugging Face Stable Diffusion XL'
                 })
             };
         }
