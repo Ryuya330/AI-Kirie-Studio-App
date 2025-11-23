@@ -1,5 +1,11 @@
 // Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by Pollinations AI (完全無料・認証不要)
+// Powered by Google Gemini 2.0 Flash & Pollinations AI
+
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Google Gemini API設定（環境変数から取得）
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyDSEV0r9N-K3pOBSXfqVZ8Yn3gG_VN5Qv8';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // ==================== 多言語翻訳システム (完全無料) ====================
 // MyMemory Translation API - 完全無料の翻訳API
@@ -279,9 +285,102 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     status: 'ok',
                     system: 'Kirie Studio AI System',
-                    version: '5.0.0-KIRIE-FOCUSED'
+                    version: '6.0.0-GEMINI-CHAT',
+                    ai: 'Google Gemini 2.0 Flash'
                 })
             };
+        }
+
+        // Gemini Chatエンドポイント
+        if (path === '/chat' && event.httpMethod === 'POST') {
+            const { message, history } = JSON.parse(event.body || '{}');
+
+            if (!message || message.trim() === '') {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ success: false, error: 'Message required' })
+                };
+            }
+
+            console.log(`[Gemini Chat] User: "${message}"`);
+
+            try {
+                const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+                
+                // システムプロンプト
+                const systemPrompt = `あなたは日本の伝統的な切り絵（Kirie）アート制作の専門AIアシスタントです。
+ユーザーと自然な会話をしながら、美しい切り絵アートのアイデアを提案し、最適なプロンプトを生成します。
+
+役割:
+- 切り絵アートのアイデアを提案
+- ユーザーの要望を理解して詳細を引き出す
+- 色彩、構図、スタイルのアドバイス
+- 画像生成用の最適化されたプロンプトを作成
+
+会話スタイル:
+- フレンドリーで親しみやすい
+- 創造的で前向き
+- 専門的だが分かりやすい
+
+画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。`;
+
+                // 会話履歴を含めてチャット
+                const chat = model.startChat({
+                    history: history || [],
+                    generationConfig: {
+                        maxOutputTokens: 1000,
+                        temperature: 0.9,
+                        topP: 0.8,
+                    },
+                });
+
+                const result = await chat.sendMessage(systemPrompt + '\n\nユーザー: ' + message);
+                const response = result.response.text();
+
+                console.log(`[Gemini Chat] AI: "${response.substring(0, 100)}..."`);
+
+                // [GENERATE:プロンプト]パターンをチェック
+                const generateMatch = response.match(/\[GENERATE:\s*(.+?)\]/);
+                let imageGeneration = null;
+
+                if (generateMatch) {
+                    const imagePrompt = generateMatch[1].trim();
+                    console.log(`[Gemini Chat] Image generation requested: "${imagePrompt}"`);
+                    
+                    try {
+                        const kirieResult = await generateKirieArt(imagePrompt, null, null);
+                        imageGeneration = {
+                            prompt: imagePrompt,
+                            imageUrl: kirieResult.imageUrl
+                        };
+                    } catch (error) {
+                        console.error('[Gemini Chat] Image generation failed:', error);
+                    }
+                }
+
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        message: response.replace(/\[GENERATE:.+?\]/g, '').trim(),
+                        imageGeneration: imageGeneration,
+                        model: 'Gemini 2.0 Flash'
+                    })
+                };
+
+            } catch (error) {
+                console.error('[Gemini Chat] Error:', error);
+                return {
+                    statusCode: 500,
+                    headers,
+                    body: JSON.stringify({
+                        success: false,
+                        error: 'Chat failed: ' + error.message
+                    })
+                };
+            }
         }
 
         // 生成エンドポイント
