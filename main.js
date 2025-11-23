@@ -200,6 +200,13 @@ function addMessage(text, sender, imageGeneration = null, uploadedImageUrl = nul
         img.alt = imageGeneration.prompt;
         
         imageWrapper.appendChild(img);
+
+        // 透かしオーバーレイ (表示用)
+        const watermark = document.createElement('div');
+        watermark.className = 'image-watermark';
+        watermark.textContent = 'Ryuya';
+        imageWrapper.appendChild(watermark);
+
         content.appendChild(imageWrapper);
 
         // アクションボタン
@@ -264,11 +271,56 @@ function addTypingIndicator() {
     return messageDiv;
 }
 
-function downloadImage(dataUrl) {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = `kirie-art-${Date.now()}.jpg`;
-    link.click();
+async function downloadImage(imageUrl) {
+    try {
+        // 画像をロードしてCanvasで透かしを焼き込む
+        const img = new Image();
+        img.crossOrigin = "Anonymous"; // CORS対応
+        img.src = imageUrl;
+        
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+
+        // 画像を描画
+        ctx.drawImage(img, 0, 0);
+
+        // 透かしを描画 (右下)
+        const fontSize = Math.max(24, img.width * 0.04); // 画像サイズに合わせてフォントサイズ調整
+        ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
+        
+        // 文字の影
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        const padding = fontSize * 0.8;
+        ctx.fillText('Ryuya', img.width - padding, img.height - padding);
+
+        // ダウンロード処理
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.download = `Ryuya-Art-${Date.now()}.jpg`;
+        link.click();
+
+    } catch (error) {
+        console.error('Watermark download failed, falling back to normal download:', error);
+        // エラー時は通常のダウンロード
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `Ryuya-Art-${Date.now()}.jpg`;
+        link.click();
+    }
 }
 
 // ページロード時のウェルカムメッセージアニメーション
