@@ -1,11 +1,13 @@
-// Netlify Function for AI Kirie Studio API (CommonJS)
-// Powered by Google Gemini 2.0 Flash & Pollinations AI
+// Netlify Function for Ryuya 3 Pro API (CommonJS)
+// Powered by Google Gemini 2.5 Flash & Gemini 2.5 Flash Image
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Google Gemini API設定（環境変数から取得）
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAPrAjMeUl7hrfjx0fac0NcR0oB8zCFYDk';
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const chatModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const imageModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-image' });
 
 // ==================== 多言語翻訳システム (完全無料) ====================
 // MyMemory Translation API - 完全無料の翻訳API
@@ -151,113 +153,78 @@ function generateProceduralKirie(prompt) {
     return `data:image/svg+xml;base64,${base64Svg}`;
 }
 
-// 切り絵専用プロンプト生成 - 最高峰のプロフェッショナル品質
-function createKiriePrompt(userPrompt) {
-    // 世界トップレベルのカラフル切り絵 - プロフェッショナル仕様
-    const styles = [
-        // 基本スタイル
+// 汎用画像生成プロンプト強化 - あらゆるジャンルに対応
+function enhancePrompt(userPrompt) {
+    // ユーザーのプロンプトをそのまま尊重しつつ、品質キーワードのみ追加
+    const qualityBoost = [
         'masterpiece',
         'best quality',
         'ultra high resolution',
-        '16K quality',
-        'professional award-winning artwork',
-        
-        // 伝統切り絵技法（日本・中国）
-        'intricate Japanese Kirie paper cutting art',
-        'exquisite Chinese Jianzhi paper art',
-        'traditional paper craft masterpiece',
-        'UNESCO world heritage paper art style',
-        
-        // カラーパレット
-        'stunning vibrant colors',
-        'rich saturated color palette',
-        'gorgeous color gradients',
-        'luxurious metallic accents',
-        'multi-layered translucent colored paper',
-        'radiant jewel tones',
-        'harmonious color composition',
-        
-        // 技術的精密さ
-        'hyper-detailed laser-cut precision',
-        'microscopic intricate patterns',
-        'razor-sharp clean edges',
-        'impossibly delicate filigree work',
-        'architectural level precision',
-        
-        // 芸術的要素
-        'epic dramatic composition',
-        'masterful negative space design',
-        'perfect symmetrical ornamental patterns',
-        'flowing elegant curves',
-        'dynamic depth and layering',
-        'three-dimensional paper sculpture effect',
-        
-        // スタイルとムード
-        'contemporary modern aesthetic',
-        'sophisticated elegant design',
-        'breathtaking visual impact',
-        'gallery-worthy museum piece',
-        
-        // 照明と撮影
-        'cinematic professional lighting',
-        'studio quality photography',
-        'perfect exposure and contrast',
-        'crystal clear focus',
-        'artistic bokeh background'
+        'professional artwork',
+        'stunning detail'
     ];
     
-    return `${userPrompt}, ${styles.join(', ')}`;
+    return `${userPrompt}, ${qualityBoost.join(', ')}`;
 }
 
-async function generateKirieArt(userPrompt, imageBase64, mimeType) {
-    // 画像がある場合
-    if (imageBase64) {
-        console.log('[Kirie] Image-to-Image mode');
-        
-        // プロンプトがない場合はデフォルトメッセージ
-        let finalPrompt = userPrompt || 'original image content';
-        
-        // 翻訳（プロンプトがある場合のみ）
-        if (userPrompt && userPrompt.trim()) {
-            finalPrompt = await translateToEnglish(userPrompt);
-            console.log('[Kirie] Translated prompt:', finalPrompt);
-        }
-        
-        // 元画像を切り絵化するプロンプト
-        const img2imgEnhanced = createKiriePrompt(finalPrompt);
-        
-        try {
-            const imageUrl = await AI_PROVIDERS.kirie_nexus(img2imgEnhanced, imageBase64, mimeType);
-            
-            return {
-                imageUrl: imageUrl,
-                model: 'Kirie Studio AI (Image-to-Image)'
-            };
-        } catch (error) {
-            console.error('Kirie image-to-image failed:', error.message);
-            throw error;
-        }
-    }
-    
-    // テキストのみの場合（元の処理）
-    console.log('[Kirie] Text-to-Image mode');
-    
-    // 日本語を英語に翻訳（AIは英語プロンプトの方が精度が高い）
-    const translatedPrompt = await translateToEnglish(userPrompt);
-    console.log('[Kirie] Original:', userPrompt, '→ Translated:', translatedPrompt);
-    
-    const enhancedPrompt = createKiriePrompt(translatedPrompt);
+async function generateImage(userPrompt, uploadedImage) {
+    console.log('[Ryuya 3 Pro] Image generation requested');
     
     try {
-        const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancedPrompt, null, null);
+        // プロンプトを翻訳
+        const translatedPrompt = await translateToEnglish(userPrompt);
+        console.log('[Ryuya 3 Pro] Translated:', translatedPrompt);
+        
+        const enhancedPrompt = enhancePrompt(translatedPrompt);
+        
+        // Gemini 2.5 Flash Imageで画像生成
+        const parts = [{ text: enhancedPrompt }];
+        
+        // アップロード画像がある場合は参照画像として追加
+        if (uploadedImage) {
+            console.log('[Ryuya 3 Pro] Using uploaded image as reference');
+            parts.push({
+                inlineData: {
+                    mimeType: uploadedImage.mimeType || 'image/jpeg',
+                    data: uploadedImage.data.split(',')[1] // base64部分のみ
+                }
+            });
+        }
+        
+        const result = await imageModel.generateContent(parts);
+        const response = await result.response;
+        
+        // Geminiの画像レスポンスを処理
+        if (response.candidates && response.candidates[0]) {
+            const candidate = response.candidates[0];
+            if (candidate.content && candidate.content.parts) {
+                for (const part of candidate.content.parts) {
+                    if (part.inlineData) {
+                        const base64Image = part.inlineData.data;
+                        const mimeType = part.inlineData.mimeType || 'image/jpeg';
+                        return {
+                            imageUrl: `data:${mimeType};base64,${base64Image}`,
+                            model: 'Gemini 2.5 Flash Image'
+                        };
+                    }
+                }
+            }
+        }
+        
+        throw new Error('画像生成に失敗しました');
+        
+    } catch (error) {
+        console.error('[Ryuya 3 Pro] Image generation failed:', error.message);
+        
+        // フォールバック: Pollinations AI
+        console.log('[Ryuya 3 Pro] Falling back to Pollinations AI');
+        const translatedPrompt = await translateToEnglish(userPrompt);
+        const imageUrl = await AI_PROVIDERS.kirie_nexus(enhancePrompt(translatedPrompt), uploadedImage?.data, uploadedImage?.mimeType);
         
         return {
             imageUrl: imageUrl,
-            model: 'Kirie Studio AI'
+            model: 'Pollinations AI (Fallback)'
         };
-    } catch (error) {
-        console.error('Kirie generation failed:', error.message);
-        throw error;
     }
 }
 
@@ -284,9 +251,10 @@ exports.handler = async function(event, context) {
                 headers,
                 body: JSON.stringify({
                     status: 'ok',
-                    system: 'Kirie Studio AI System',
-                    version: '6.0.0-GEMINI-CHAT',
-                    ai: 'Google Gemini 2.5 Flash'
+                    system: 'Ryuya 3 Pro System',
+                    version: '7.0.0-DUAL-GEMINI',
+                    chat: 'Gemini 2.5 Flash',
+                    image: 'Gemini 2.5 Flash Image'
                 })
             };
         }
@@ -303,30 +271,34 @@ exports.handler = async function(event, context) {
                 };
             }
 
-            console.log(`[Gemini Chat] User: "${message}"`);
+            console.log(`[Ryuya 3 Pro Chat] User: "${message}"`);
 
             try {
-                const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-                
                 // システムプロンプト
-                const systemPrompt = `あなたは日本の伝統的な切り絵（Kirie）アート制作の専門AIアシスタントです。
-ユーザーと自然な会話をしながら、美しい切り絵アートのアイデアを提案し、最適なプロンプトを生成します。
+                const systemPrompt = `あなたはRyuya 3 Pro - 最先端のAI画像生成アシスタントです。
+ユーザーと自然な会話をしながら、あらゆるジャンルの画像生成をサポートします。
+
+対応ジャンル:
+- イラスト・アート（アニメ、リアル、抽象画など）
+- 風景・建築
+- キャラクターデザイン
+- プロダクトデザイン
+- その他あらゆる画像生成
 
 役割:
-- 切り絵アートのアイデアを提案
-- ユーザーの要望を理解して詳細を引き出す
-- 色彩、構図、スタイルのアドバイス
-- 画像生成用の最適化されたプロンプトを作成
+- ユーザーの要望を理解して最適な画像生成プロンプトを作成
+- スタイル、構図、色彩のアドバイス
+- クリエイティブなアイデア提案
 
 会話スタイル:
 - フレンドリーで親しみやすい
-- 創造的で前向き
-- 専門的だが分かりやすい
+- 創造的で柔軟
+- プロフェッショナル
 
 画像生成が必要な場合は、レスポンスに [GENERATE: プロンプト] を含めてください。`;
 
                 // 会話履歴を含めてチャット
-                const chat = model.startChat({
+                const chat = chatModel.startChat({
                     history: history || [],
                     generationConfig: {
                         maxOutputTokens: 1000,
@@ -346,16 +318,16 @@ exports.handler = async function(event, context) {
 
                 if (generateMatch) {
                     const imagePrompt = generateMatch[1].trim();
-                    console.log(`[Gemini Chat] Image generation requested: "${imagePrompt}"`);
+                    console.log(`[Ryuya 3 Pro] Image generation requested: "${imagePrompt}"`);
                     
                     try {
-                        const kirieResult = await generateKirieArt(imagePrompt, null, null);
+                        const imageResult = await generateImage(imagePrompt, null);
                         imageGeneration = {
                             prompt: imagePrompt,
-                            imageUrl: kirieResult.imageUrl
+                            imageUrl: imageResult.imageUrl
                         };
                     } catch (error) {
-                        console.error('[Gemini Chat] Image generation failed:', error);
+                        console.error('[Ryuya 3 Pro] Image generation failed:', error);
                     }
                 }
 
@@ -366,7 +338,7 @@ exports.handler = async function(event, context) {
                         success: true,
                         message: response.replace(/\[GENERATE:.+?\]/g, '').trim(),
                         imageGeneration: imageGeneration,
-                        model: 'Gemini 2.5 Flash'
+                        model: 'Ryuya 3 Pro (Gemini 2.5 Flash)'
                     })
                 };
 
@@ -387,18 +359,18 @@ exports.handler = async function(event, context) {
         if (path === '/generate' && event.httpMethod === 'POST') {
             const { prompt, image, mimeType } = JSON.parse(event.body || '{}');
 
-            // 画像がある場合はプロンプトなしでもOK
-            if ((!prompt || prompt.trim() === '') && !image) {
+            if (!prompt || prompt.trim() === '') {
                 return {
                     statusCode: 400,
                     headers,
-                    body: JSON.stringify({ success: false, error: 'Prompt or image required' })
+                    body: JSON.stringify({ success: false, error: 'Prompt required' })
                 };
             }
 
-            console.log(`[Kirie Studio] Generating: "${prompt || '(image only)'}"`);
+            console.log(`[Ryuya 3 Pro] Generating: "${prompt}"`);
 
-            const result = await generateKirieArt(prompt, image, mimeType);
+            const uploadedImage = image ? { data: image, mimeType } : null;
+            const result = await generateImage(prompt, uploadedImage);
 
             return {
                 statusCode: 200,
@@ -406,8 +378,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     success: true,
                     ...result,
-                    prompt: prompt || 'Image transformation',
-                    model: 'Pollinations AI (Flux)'
+                    prompt: prompt
                 })
             };
         }
