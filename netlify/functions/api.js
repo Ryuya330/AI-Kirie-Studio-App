@@ -42,8 +42,8 @@ const AI_PROVIDERS = {
             console.log('[Pollinations AI] Generating with prompt:', prompt);
             
             // Pollinations AI - 完全無料で認証不要のFlux AI
-            // ネガティブプロンプトで不要な要素を除外
-            const negativePrompt = 'color, colorful, photo, photograph, realistic, 3D, gradient, blur, watermark, text, signature, frame, border';
+            // ネガティブプロンプトで不要な要素を除外（より強力に）
+            const negativePrompt = 'color, colorful, colored, photo, photograph, realistic, 3D render, gradient, soft edges, blur, blurry, watermark, text, letters, signature, username, frame, border, low contrast, grey, gray, faded, dull, messy, chaotic, unclear, low quality, jpeg artifacts, noise';
             
             const encodedPrompt = encodeURIComponent(prompt);
             const encodedNegative = encodeURIComponent(negativePrompt);
@@ -107,10 +107,14 @@ function generateProceduralKirie(prompt) {
     return `data:image/svg+xml;base64,${base64Svg}`;
 }
 
-// 切り絵専用プロンプト生成
+// 切り絵専用プロンプト生成（Flux AI最適化版）
 function createKiriePrompt(userPrompt) {
-    // より強力な切り絵スタイル指定
-    return `${userPrompt}, Japanese paper cutting art, Kirie style, monochrome silhouette, black cut paper on white background, intricate detailed patterns, sharp edges, traditional papercraft, high contrast black and white, delicate cutout design, paper art masterpiece, clean silhouette`;
+    // Flux AIが得意とする詳細なスタイル指定
+    // - 高コントラスト
+    // - 精密なディテール
+    // - ドラマチックな構図
+    // - プロフェッショナルなライティング
+    return `${userPrompt}, intricate Japanese Kirie paper cutting art, bold black silhouette on pure white background, extremely detailed ornamental patterns, laser-cut precision, symmetrical traditional motifs, decorative filigree borders, elegant negative space design, masterful papercraft technique, studio photography lighting, 8K ultra sharp details, professional art documentation, museum quality, dramatic shadows, perfect contrast ratio, fine line work, complex geometric patterns`;
 }
 
 async function generateKirieArt(userPrompt, imageBase64, mimeType) {
