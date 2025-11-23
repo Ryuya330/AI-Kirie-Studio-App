@@ -8,7 +8,7 @@ const AI_PROVIDERS = {
             console.log('[Hugging Face] Generating with prompt:', prompt);
             
             const response = await fetch(
-                "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
+                "https://router.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0",
                 {
                     method: "POST",
                     headers: {
